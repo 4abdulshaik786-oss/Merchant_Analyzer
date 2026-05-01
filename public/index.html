@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Merchant Review Analyzer</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f5f3;
+    color: #1a1a1a;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  .container { max-width: 880px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+
+  h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.01em; }
+  .subtitle { font-size: 14px; color: #666; margin-bottom: 1.75rem; }
+
+  .card {
+    background: #fff;
+    border: 1px solid #e8e8e6;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .card h2 {
+    font-size: 13px; font-weight: 600; color: #444;
+    margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  label {
+    font-size: 12px; font-weight: 500; color: #555;
+    display: block; margin-bottom: 6px; margin-top: 14px;
+    text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  label:first-child, .grid label { margin-top: 0; }
+
+  input[type=text], input[type=number], select {
+    width: 100%; padding: 10px 12px;
+    border: 1px solid #ddd; border-radius: 8px;
+    font-size: 14px; color: #1a1a1a;
+    background: #fafaf9; outline: none;
+    transition: border-color 0.15s, background 0.15s;
+    font-family: inherit;
+  }
+  input:focus, select:focus { border-color: #555; background: #fff; }
+  select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    padding-right: 32px;
+  }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+  @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+
+  .submit-row { margin-top: 18px; display: flex; align-items: center; gap: 12px; }
+  .run-btn {
+    padding: 11px 26px; font-size: 14px; font-weight: 600;
+    background: #1a1a1a; color: #fff; border: none; border-radius: 8px;
+    cursor: pointer; transition: background 0.15s;
+    font-family: inherit;
+  }
+  .run-btn:hover { background: #333; }
+  .run-btn:disabled { background: #aaa; cursor: not-allowed; }
+
+  .google-note {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #475569;
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin-top: 10px;
+  }
+
+  /* Steps */
+  .steps { padding: 4px 0; }
+  .step {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 11px 0; border-bottom: 1px solid #f0f0ee;
+    font-size: 14px; color: #444;
+  }
+  .step:last-child { border-bottom: none; }
+  .step-icon {
+    width: 22px; height: 22px; flex-shrink: 0;
+    border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 600;
+    background: #ececea; color: #888;
+    margin-top: 1px;
+  }
+  .step.active .step-icon {
+    background: #1a1a1a; color: #fff;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .step.done .step-icon { background: #16a34a; color: #fff; }
+  .step.error .step-icon { background: #dc2626; color: #fff; }
+  .step .step-detail { font-size: 12px; color: #888; margin-top: 2px; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  /* Place confirmation card (Google only) */
+  .place-card {
+    background: linear-gradient(135deg, #fff 0%, #fafafa 100%);
+    border: 1px solid #e8e8e6;
+    border-left: 3px solid #4285F4;
+    padding: 14px 18px;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+  }
+  .place-card .pname { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+  .place-card .paddr { font-size: 13px; color: #666; margin-top: 3px; }
+  .place-card .pmeta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: #555; }
+  .place-card .pmeta strong { color: #1a1a1a; }
+
+  /* Notice banner */
+  .notice {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #78350f;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 1rem;
+  }
+
+  /* Results */
+  .results-header { margin-bottom: 16px; }
+  .results-header .merchant-name { font-size: 20px; font-weight: 600; color: #1a1a1a; }
+  .results-header .merchant-addr { font-size: 13px; color: #666; margin-top: 2px; }
+  .source-badge {
+    display: inline-block; margin-top: 8px;
+    padding: 4px 10px; border-radius: 14px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+  .source-badge.google { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip {
+    background: #f0f0ee; color: #444;
+    padding: 5px 11px; border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+  }
+  .chip.primary { background: #1a1a1a; color: #fff; }
+
+  .summary-box {
+    background: #fdfdfc;
+    border: 1px solid #ececea;
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #2a2a2a;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  /* ─── Section 1: Pain Point Insights ─── */
+  .pain-points-card h2 {
+    font-size: 16px; font-weight: 600; color: #1a1a1a;
+    text-transform: none; letter-spacing: 0;
+    margin-bottom: 4px;
+  }
+  .pain-points-card .pp-sub {
+    font-size: 12px; color: #888; margin-bottom: 14px;
+  }
+  .pp-list { display: flex; flex-direction: column; gap: 14px; }
+  .pp-item {
+    background: #fdfdfc;
+    border: 1px solid #ececea;
+    border-left: 3px solid #f59e0b;
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .pp-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 10px; margin-bottom: 6px;
+  }
+  .pp-pain {
+    font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.4;
+  }
+  .pp-freq {
+    flex-shrink: 0;
+    font-size: 11px; font-weight: 600;
+    color: #92400e; background: #fef3c7;
+    padding: 3px 9px; border-radius: 12px;
+    white-space: nowrap;
+  }
+  .pp-quotes { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+  .pp-quote {
+    font-size: 13px; color: #555; line-height: 1.55;
+    padding-left: 12px; border-left: 2px solid #fde68a;
+    font-style: italic;
+  }
+  .pp-quote .q-meta {
+    display: block;
+    font-size: 11px; color: #999;
+    font-style: normal; margin-top: 3px;
+  }
+
+  /* ─── Section 2: Channel Creative Preview ─── */
+  .channel-card h2 {
+    font-size: 16px; font-weight: 600; color: #1a1a1a;
+    text-transform: none; letter-spacing: 0; margin-bottom: 4px;
+  }
+  .channel-card .ch-sub {
+    font-size: 12px; color: #888; margin-bottom: 14px;
+  }
+  .channel-toggle {
+    display: inline-flex;
+    background: #f0f0ee;
+    border-radius: 10px;
+    padding: 4px;
+    gap: 2px;
+    margin-bottom: 14px;
+  }
+  .channel-toggle button {
+    border: none; background: transparent;
+    padding: 7px 16px;
+    font-size: 13px; font-weight: 500;
+    color: #555;
+    border-radius: 7px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s, color 0.15s;
+  }
+  .channel-toggle button:hover { color: #1a1a1a; }
+  .channel-toggle button.active {
+    background: #fff; color: #1a1a1a;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    font-weight: 600;
+  }
+
+  .channel-preview { margin-top: 4px; }
+
+  /* WhatsApp preview */
+  .wa-preview {
+    background: #e6dcd0;
+    background-image: linear-gradient(135deg, #e6dcd0 0%, #ddd0c0 100%);
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid #d4c4b0;
+  }
+  .wa-bubble {
+    background: #d9fdd3;
+    border-radius: 12px 12px 12px 2px;
+    padding: 10px 14px;
+    max-width: 90%;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+    position: relative;
+  }
+  .wa-message {
+    font-size: 14px; color: #111;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: inherit;
+    line-height: 1.55;
+    margin: 0;
+  }
+  .wa-time {
+    display: block;
+    text-align: right;
+    font-size: 10px; color: #667781;
+    margin-top: 4px;
+  }
+
+  /* Push preview */
+  .push-preview {
+    background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
+    padding: 24px 18px;
+    border-radius: 18px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+    border: 1px solid #1f2937;
+  }
+  .push-card {
+    background: rgba(255,255,255,0.94);
+    backdrop-filter: blur(20px);
+    border-radius: 14px;
+    padding: 12px 14px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .push-icon {
+    width: 38px; height: 38px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #00B9F1 0%, #002970 100%);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px;
+    flex-shrink: 0;
+  }
+  .push-content { flex: 1; min-width: 0; }
+  .push-app {
+    font-size: 11px; font-weight: 500; color: #6b7280;
+    margin-bottom: 2px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    display: flex; justify-content: space-between;
+  }
+  .push-title {
+    font-size: 14px; font-weight: 600; color: #111;
+    line-height: 1.3; margin-bottom: 2px;
+  }
+  .push-body {
+    font-size: 13px; color: #444; line-height: 1.4;
+  }
+
+  /* Banner preview */
+  .banner-preview {
+    background: linear-gradient(135deg, #002970 0%, #00B9F1 100%);
+    border-radius: 12px;
+    padding: 18px 22px;
+    color: #fff;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 16px; flex-wrap: wrap;
+    box-shadow: 0 4px 14px rgba(0, 41, 112, 0.18);
+  }
+  .banner-line {
+    font-size: 15px; font-weight: 600; line-height: 1.35;
+    flex: 1; min-width: 200px;
+  }
+  .banner-cta {
+    background: #fff; color: #002970;
+    border: none;
+    padding: 9px 20px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+    cursor: default;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+
+  /* Section skeleton (reuses shimmer keyframe) */
+  .section-skeleton {
+    display: flex; flex-direction: column; gap: 10px;
+    margin-top: 10px;
+  }
+  .section-skeleton .skeleton-line { margin-bottom: 0; }
+  .section-skeleton .skeleton-line:nth-child(1) { width: 96%; }
+  .section-skeleton .skeleton-line:nth-child(2) { width: 78%; }
+  .section-skeleton .skeleton-line:nth-child(3) { width: 88%; }
+  .section-skeleton .skeleton-line:nth-child(4) { width: 65%; }
+
+  /* Cohort cards */
+  .cohorts-grid { display: grid; gap: 12px; margin-top: 12px; }
+  .cohort-card {
+    background: #fff;
+    border: 1px solid #e8e8e6;
+    border-left: 4px solid #888;
+    border-radius: 10px;
+    padding: 14px 18px;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .cohort-card.primary {
+    background: #fdfbf7;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+  .cohort-card .ch-head {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 4px;
+  }
+  .cohort-card .ch-name { font-size: 15px; font-weight: 600; color: #1a1a1a; }
+  .cohort-card .ch-tag { font-size: 12px; color: #777; font-style: italic; margin-bottom: 8px; }
+  .cohort-card .score-badge {
+    padding: 3px 10px; border-radius: 14px; font-size: 12px; font-weight: 600;
+    background: #f0f0ee; color: #1a1a1a;
+  }
+  .cohort-card.primary .score-badge { background: #1a1a1a; color: #fff; }
+  .progress {
+    height: 6px; background: #f0f0ee; border-radius: 3px; overflow: hidden;
+    margin: 8px 0 10px;
+  }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease-out; }
+  .evidence-list { list-style: none; padding: 0; margin-top: 6px; }
+  .evidence-list li {
+    font-size: 13px; color: #555;
+    padding: 4px 0 4px 14px;
+    position: relative;
+    line-height: 1.5;
+    font-style: italic;
+  }
+  .evidence-list li::before {
+    content: '\201C'; position: absolute; left: 0; top: 2px;
+    color: #aaa; font-size: 18px; font-family: Georgia, serif;
+    font-style: normal;
+  }
+
+  .err-box {
+    background: #fef2f2; border: 1px solid #fecaca;
+    color: #991b1b; padding: 12px 14px;
+    border-radius: 8px; font-size: 13px; margin-top: 12px;
+  }
+
+  /* ─── Shared loading + error styles (used by Section 1 & Section 2) ─── */
+  .skeleton-line {
+    height: 12px; background: linear-gradient(90deg, #ececea 0%, #f5f5f3 50%, #ececea 100%);
+    background-size: 200% 100%;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    animation: shimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .msg-error {
+    background: #fef2f2; border: 1px solid #fecaca;
+    color: #991b1b; padding: 14px 16px;
+    border-radius: 10px; font-size: 13px;
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    margin-top: 14px;
+  }
+  .retry-btn {
+    background: #fff; color: #991b1b;
+    border: 1px solid #fca5a5; border-radius: 6px;
+    padding: 6px 14px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .retry-btn:hover { background: #fee2e2; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Merchant Review Analyzer</h1>
+  <p class="subtitle">Find a business → fetch reviews → classify into Pi Commerce cohorts → draft outreach.</p>
+
+  <!-- ─── INPUT FORM ──────────────────────────────────────────────── -->
+  <div class="card" id="formCard">
+    <h2>Business Details</h2>
+    <form id="form">
+      <div>
+        <label for="businessName">Business name and address</label>
+        <input id="businessName" type="text" required placeholder="e.g. Bon Amigos Cafe, Sector 76, Noida" />
+      </div>
+
+      <div>
+        <label for="sortOrder" style="margin-top: 14px;">Sort reviews by</label>
+        <select id="sortOrder">
+          <option value="most_relevant">Most Relevant</option>
+          <option value="newest">Newest First</option>
+        </select>
+      </div>
+
+      <div class="google-note">
+        Google Places API returns a maximum of 5 reviews per place.
+      </div>
+
+      <div class="submit-row">
+        <button type="submit" class="run-btn" id="runBtn">Analyze Merchant →</button>
+        <span id="formError" style="font-size:13px;color:#dc2626;"></span>
+      </div>
+    </form>
+  </div>
+
+  <!-- ─── PIPELINE STEPS ──────────────────────────────────────────── -->
+  <div class="card hidden" id="stepsCard">
+    <h2 id="stepsHeading">Pipeline</h2>
+    <div class="steps" id="stepsContainer"></div>
+    <div class="err-box hidden" id="errBox"></div>
+  </div>
+
+  <!-- ─── PLACE CONFIRMATION (Google only) ───────────────────────── -->
+  <div class="hidden" id="placeWrap">
+    <div class="place-card" id="placeCard"></div>
+  </div>
+
+  <!-- ─── NOTICE BANNER ──────────────────────────────────────────── -->
+  <div class="notice hidden" id="noticeBanner"></div>
+
+  <!-- ─── RESULTS ────────────────────────────────────────────────── -->
+  <div class="hidden" id="resultsWrap">
+    <div class="card">
+      <div class="results-header">
+        <div class="merchant-name" id="resName"></div>
+        <div class="merchant-addr" id="resAddr"></div>
+        <div id="sourceBadgeWrap"></div>
+        <div class="chips" id="resChips"></div>
+      </div>
+      <div class="summary-box" id="resSummary"></div>
+    </div>
+
+    <!-- ─── SECTION 1: PAIN POINT INSIGHTS ───────────────────────── -->
+    <div class="card pain-points-card" id="painPointsCard">
+      <h2 id="painPointsTitle">What customers are saying</h2>
+      <div class="pp-sub">Pain points extracted from the reviews fetched under the current sort order.</div>
+
+      <div class="section-skeleton" id="painPointsSkeleton">
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line"></div>
+      </div>
+      <div class="msg-error hidden" id="painPointsError">
+        <span>Could not extract pain points.</span>
+        <button type="button" class="retry-btn" id="painPointsRetry">Retry</button>
+      </div>
+      <div class="pp-list hidden" id="painPointsList"></div>
+    </div>
+
+    <!-- ─── SECTION 2: CHANNEL CREATIVE PREVIEW ──────────────────── -->
+    <div class="card channel-card" id="channelCard">
+      <h2>Channel Creative Preview</h2>
+      <div class="ch-sub">Personalised copy for this merchant — generated from the pain points above.</div>
+
+      <div class="channel-toggle" role="tablist">
+        <button type="button" data-channel="whatsapp" class="active">WhatsApp</button>
+        <button type="button" data-channel="push">Push</button>
+        <button type="button" data-channel="banner">Banner</button>
+      </div>
+
+      <div class="channel-preview" id="channelPreview">
+        <div class="section-skeleton" id="channelSkeleton">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line"></div>
+        </div>
+        <div class="msg-error hidden" id="channelError">
+          <span>Could not generate copy for this channel.</span>
+          <button type="button" class="retry-btn" id="channelRetry">Retry</button>
+        </div>
+        <div id="channelRendered"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Cohort Breakdown</h2>
+      <div class="cohorts-grid" id="resCohorts"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── Cohort metadata (display) ─────────────────────────────────
+  const COHORTS = {
+    acquisition_gap:    { name: 'Acquisition Gap',     tag: 'Nobody knows we exist',                        color: '#3b82f6' },
+    retention_winback:  { name: 'Retention / Winback', tag: 'Our regulars stopped coming',                  color: '#a855f7' },
+    frequency:          { name: 'Frequency',           tag: 'They like us but only visit twice a year',     color: '#10b981' },
+    off_peak_imbalance: { name: 'Off-Peak Imbalance',  tag: 'Crushed at lunch, dead at 4 PM',               color: '#f59e0b' },
+    competitive_loss:   { name: 'Competitive Loss',    tag: 'Customers are going to the shop next door',    color: '#ef4444' },
+    personalization_gap:{ name: 'Personalization Gap', tag: 'Our marketing is irrelevant to them',          color: '#06b6d4' },
+  };
+
+  // ─── DOM refs ──────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+  const form = $('form');
+  const runBtn = $('runBtn');
+  const formError = $('formError');
+
+  // ─── Step helpers ──────────────────────────────────────────────
+  // Each pipeline declares its own step list. We render dynamically.
+  function renderSteps(stepLabels) {
+    const c = $('stepsContainer');
+    c.innerHTML = '';
+    stepLabels.forEach((label, i) => {
+      const div = document.createElement('div');
+      div.className = 'step';
+      div.id = 'step' + (i + 1);
+      div.innerHTML = `
+        <span class="step-icon">${i + 1}</span>
+        <div>
+          <div class="step-title">${escapeHtml(label)}</div>
+          <div class="step-detail" id="step${i + 1}Detail"></div>
+        </div>`;
+      c.appendChild(div);
+    });
+  }
+
+  function setStep(n, state, detail, titleOverride) {
+    const el = $('step' + n);
+    if (!el) return;
+    el.classList.remove('active', 'done', 'error');
+    if (state) el.classList.add(state);
+    const icon = el.querySelector('.step-icon');
+    if (state === 'done') icon.textContent = '✓';
+    else if (state === 'error') icon.textContent = '!';
+    else if (state === 'active') icon.textContent = '…';
+    else icon.textContent = String(n);
+    if (titleOverride !== undefined) {
+      const t = el.querySelector('.step-title');
+      if (t) t.textContent = titleOverride;
+    }
+    if (detail !== undefined) {
+      const d = $('step' + n + 'Detail');
+      if (d) d.textContent = detail || '';
+    }
+  }
+  function markActiveStepError() {
+    document.querySelectorAll('.step.active').forEach(el => {
+      el.classList.remove('active');
+      el.classList.add('error');
+      el.querySelector('.step-icon').textContent = '!';
+    });
+  }
+  function showError(msg) {
+    const box = $('errBox');
+    box.textContent = msg;
+    box.classList.remove('hidden');
+  }
+
+  // ─── API helpers ───────────────────────────────────────────────
+  const API = 'http://localhost:3000';
+  async function apiPost(path, body) {
+    const r = await fetch(API + path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    return data;
+  }
+  async function apiGet(path) {
+    const r = await fetch(API + path);
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    return data;
+  }
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // ════════════════════════════════════════════════════════════════
+  // GOOGLE PLACES PIPELINE (3 UI steps)
+  // ════════════════════════════════════════════════════════════════
+  async function runGooglePipeline({ businessName, sortOrder }) {
+    renderSteps([
+      'Finding place via Google Places API',
+      'Fetching reviews',
+      'Analyzing with GPT-4.1-mini',
+    ]);
+
+    // Step 1 — find place
+    setStep(1, 'active', `Searching: ${businessName}`);
+    const place = await apiPost('/api/google/find-place', { businessName });
+    setStep(1, 'done', `Found: ${place.name}`);
+    renderPlaceCard(place);
+
+    // Step 2 — fetch reviews
+    setStep(2, 'active', 'Calling Google Places Details API…');
+    const result = await apiPost('/api/google/reviews', {
+      placeId: place.placeId,
+      sortOrder,
+      placeMetadata: {
+        name: place.name,
+        address: place.formattedAddress,
+        rating: place.rating,
+        totalReviews: place.totalReviews,
+      },
+    });
+    if (!result.reviews || result.reviews.length === 0) {
+      throw new Error('Google Places returned no review text for this place.');
+    }
+    setStep(2, 'done', `Fetched ${result.reviews.length} reviews from Google Places (max 5)`);
+
+    // Step 3 — GPT analysis
+    setStep(3, 'active', `Sending ${result.reviews.length} reviews to GPT-4.1-mini…`);
+    const placeMetadata = {
+      name: place.name,
+      address: place.formattedAddress,
+      formattedAddress: place.formattedAddress,
+      rating: place.rating,
+      totalReviews: place.totalReviews,
+    };
+    const analysis = await apiPost('/api/analyze', { reviews: result.reviews, placeMetadata });
+    setStep(3, 'done', `Primary cohort: ${analysis.primaryCohort}`);
+
+    return { analysis, placeMetadata, source: 'google_places', reviews: result.reviews };
+  }
+
+  // ─── Renderers ─────────────────────────────────────────────────
+  function renderPlaceCard(place) {
+    $('placeWrap').classList.remove('hidden');
+    $('placeCard').innerHTML = `
+      <div class="pname">${escapeHtml(place.name)}</div>
+      <div class="paddr">${escapeHtml(place.formattedAddress)}</div>
+      <div class="pmeta">
+        <span>★ <strong>${place.rating ?? '—'}</strong></span>
+        <span><strong>${place.totalReviews ?? 0}</strong> total reviews on Google</span>
+        <span style="color:#999;">place_id: ${place.placeId.slice(0,18)}…</span>
+      </div>`;
+  }
+
+  function renderResults(placeMetadata, analysis, source) {
+    const wrap = $('resultsWrap');
+    wrap.classList.remove('hidden');
+
+    $('resName').textContent = placeMetadata.name || '—';
+    $('resAddr').textContent = placeMetadata.formattedAddress || placeMetadata.address || '';
+
+    const badgeWrap = $('sourceBadgeWrap');
+    badgeWrap.innerHTML = '';
+    const badge = document.createElement('span');
+    badge.className = 'source-badge google';
+    badge.textContent = 'Analyzed via Google Places';
+    badgeWrap.appendChild(badge);
+
+    const primary = analysis.primaryCohort;
+    const primaryMeta = COHORTS[primary] || { name: primary };
+    const chips = $('resChips');
+    chips.innerHTML = '';
+    chips.appendChild(chipEl(`${analysis.totalReviewsAnalyzed ?? '—'} reviews analyzed`));
+    chips.appendChild(chipEl(`Avg rating ★ ${analysis.avgRating ?? '—'}`));
+    chips.appendChild(chipEl(`Primary: ${primaryMeta.name}`, true));
+
+    $('resSummary').textContent = analysis.summary || '—';
+
+    const grid = $('resCohorts');
+    grid.innerHTML = '';
+    (analysis.allCohorts || [])
+      .filter(c => (c.score || 0) > 10)
+      .sort((a, b) => b.score - a.score)
+      .forEach(c => grid.appendChild(cohortCard(c, c.id === primary)));
+
+    // Yellow notice for Google source
+    const banner = $('noticeBanner');
+    if (source === 'google_places') {
+      banner.textContent = '⚠ Analysis based on only 5 reviews (Google Places API limit).';
+      banner.classList.remove('hidden');
+    } else {
+      banner.classList.add('hidden');
+    }
+
+    wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function chipEl(text, primary) {
+    const s = document.createElement('span');
+    s.className = 'chip' + (primary ? ' primary' : '');
+    s.textContent = text;
+    return s;
+  }
+
+  function cohortCard(c, isPrimary) {
+    const meta = COHORTS[c.id] || { name: c.id, tag: '', color: '#888' };
+    const card = document.createElement('div');
+    card.className = 'cohort-card' + (isPrimary ? ' primary' : '');
+    card.style.borderLeftColor = meta.color;
+
+    const evidence = (c.evidence || []).slice(0, 3)
+      .map(e => `<li>${escapeHtml(e)}</li>`).join('');
+
+    card.innerHTML = `
+      <div class="ch-head">
+        <div class="ch-name">${isPrimary ? '★ ' : ''}${escapeHtml(meta.name)}</div>
+        <span class="score-badge">${c.score}%</span>
+      </div>
+      <div class="ch-tag">"${escapeHtml(meta.tag)}"</div>
+      <div class="progress"><div class="progress-fill" style="width:${c.score}%; background:${meta.color};"></div></div>
+      <ul class="evidence-list">${evidence}</ul>`;
+    return card;
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, ch => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[ch]));
+  }
+
+  // ════════════════════════════════════════════════════════════════
+  // SECTION 1 — PAIN POINT INSIGHTS
+  // ════════════════════════════════════════════════════════════════
+  let lastPainPointsPayload = null;
+  let lastPainPoints = [];
+
+  async function generatePainPoints(placeMetadata, reviews) {
+    lastPainPointsPayload = { placeMetadata, reviews };
+    $('painPointsTitle').textContent = `What customers are saying about ${placeMetadata.name}`;
+
+    $('painPointsSkeleton').classList.remove('hidden');
+    $('painPointsError').classList.add('hidden');
+    $('painPointsList').classList.add('hidden');
+
+    try {
+      const { painPoints } = await apiPost('/api/pain-points', { reviews, placeMetadata });
+      lastPainPoints = Array.isArray(painPoints) ? painPoints : [];
+      renderPainPoints(lastPainPoints);
+      return lastPainPoints;
+    } catch (e) {
+      console.error('[pain-points] failed:', e);
+      $('painPointsSkeleton').classList.add('hidden');
+      $('painPointsError').classList.remove('hidden');
+      lastPainPoints = [];
+      return [];
+    }
+  }
+
+  function renderPainPoints(painPoints) {
+    const list = $('painPointsList');
+    $('painPointsSkeleton').classList.add('hidden');
+    list.innerHTML = '';
+
+    if (!painPoints.length) {
+      list.classList.remove('hidden');
+      list.innerHTML = '<div style="font-size:13px;color:#888;">No specific pain points surfaced from these reviews.</div>';
+      return;
+    }
+
+    painPoints.forEach(pp => {
+      const item = document.createElement('div');
+      item.className = 'pp-item';
+
+      const head = document.createElement('div');
+      head.className = 'pp-head';
+      head.innerHTML = `
+        <div class="pp-pain">${escapeHtml(pp.pain || '')}</div>
+        <div class="pp-freq">Mentioned in ${pp.frequency || 0} review${pp.frequency === 1 ? '' : 's'}</div>
+      `;
+      item.appendChild(head);
+
+      if (Array.isArray(pp.quotes) && pp.quotes.length) {
+        const quotes = document.createElement('div');
+        quotes.className = 'pp-quotes';
+        pp.quotes.slice(0, 2).forEach(q => {
+          const qd = document.createElement('div');
+          qd.className = 'pp-quote';
+          const meta = [q.author, q.date].filter(Boolean).join(' · ');
+          qd.innerHTML = `"${escapeHtml(q.text || '')}"${meta ? `<span class="q-meta">— ${escapeHtml(meta)}</span>` : ''}`;
+          quotes.appendChild(qd);
+        });
+        item.appendChild(quotes);
+      }
+
+      list.appendChild(item);
+    });
+    list.classList.remove('hidden');
+  }
+
+  $('painPointsRetry').addEventListener('click', () => {
+    if (!lastPainPointsPayload) return;
+    generatePainPoints(lastPainPointsPayload.placeMetadata, lastPainPointsPayload.reviews);
+  });
+
+  // ════════════════════════════════════════════════════════════════
+  // SECTION 2 — CHANNEL CREATIVE PREVIEW
+  // ════════════════════════════════════════════════════════════════
+  let activeChannel = 'whatsapp';
+  let channelMerchantContext = null;
+  // Per-channel cache so toggling back doesn't re-call OpenAI.
+  // Cleared on every new analysis.
+  let channelCopyCache = { whatsapp: null, push: null, banner: null };
+
+  function resetChannelSection(merchantName, painPoints, primaryCohort, cohortTagline, reviews) {
+    channelMerchantContext = { merchantName, painPoints, primaryCohort, cohortTagline, reviews: reviews || [] };
+    channelCopyCache = { whatsapp: null, push: null, banner: null };
+    activeChannel = 'whatsapp';
+    document.querySelectorAll('.channel-toggle button').forEach(b => {
+      b.classList.toggle('active', b.dataset.channel === activeChannel);
+    });
+    loadChannelCopy(activeChannel);
+  }
+
+  async function loadChannelCopy(channel) {
+    activeChannel = channel;
+    document.querySelectorAll('.channel-toggle button').forEach(b => {
+      b.classList.toggle('active', b.dataset.channel === channel);
+    });
+
+    $('channelError').classList.add('hidden');
+    $('channelRendered').innerHTML = '';
+
+    // Use cached copy if available
+    if (channelCopyCache[channel]) {
+      $('channelSkeleton').classList.add('hidden');
+      renderChannelPreview(channel, channelCopyCache[channel]);
+      return;
+    }
+
+    if (!channelMerchantContext) return;
+    $('channelSkeleton').classList.remove('hidden');
+
+    try {
+      const { copy } = await apiPost('/api/channel-copy', {
+        channel,
+        merchantName: channelMerchantContext.merchantName,
+        painPoints: channelMerchantContext.painPoints || [],
+        primaryCohort: channelMerchantContext.primaryCohort,
+        cohortTagline: channelMerchantContext.cohortTagline,
+        reviews: channelMerchantContext.reviews || [],
+      });
+      channelCopyCache[channel] = copy;
+      // Only render if user hasn't toggled to a different channel meanwhile
+      if (activeChannel === channel) {
+        $('channelSkeleton').classList.add('hidden');
+        renderChannelPreview(channel, copy);
+      }
+    } catch (e) {
+      console.error('[channel-copy] failed:', e);
+      if (activeChannel === channel) {
+        $('channelSkeleton').classList.add('hidden');
+        $('channelError').classList.remove('hidden');
+      }
+    }
+  }
+
+  function renderChannelPreview(channel, copy) {
+    const target = $('channelRendered');
+    target.innerHTML = '';
+
+    if (channel === 'whatsapp') {
+      const wrap = document.createElement('div');
+      wrap.className = 'wa-preview';
+      wrap.innerHTML = `
+        <div class="wa-bubble">
+          <pre class="wa-message">${escapeHtml(copy.message || '')}</pre>
+          <span class="wa-time">${currentTimeShort()} ✓✓</span>
+        </div>`;
+      target.appendChild(wrap);
+    } else if (channel === 'push') {
+      const wrap = document.createElement('div');
+      wrap.className = 'push-preview';
+      wrap.innerHTML = `
+        <div class="push-card">
+          <div class="push-icon">Pi</div>
+          <div class="push-content">
+            <div class="push-app"><span>PI COMMERCE</span><span>now</span></div>
+            <div class="push-title">${escapeHtml(copy.title || '')}</div>
+            <div class="push-body">${escapeHtml(copy.body || '')}</div>
+          </div>
+        </div>`;
+      target.appendChild(wrap);
+    } else if (channel === 'banner') {
+      const wrap = document.createElement('div');
+      wrap.className = 'banner-preview';
+      wrap.innerHTML = `
+        <div class="banner-line">${escapeHtml(copy.line || '')}</div>
+        <button type="button" class="banner-cta" tabindex="-1">${escapeHtml(copy.cta || 'Notify Me')}</button>`;
+      target.appendChild(wrap);
+    }
+  }
+
+  function currentTimeShort() {
+    const d = new Date();
+    let h = d.getHours();
+    const m = String(d.getMinutes()).padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${h}:${m} ${ampm}`;
+  }
+
+  // Wire toggle buttons (only once)
+  document.querySelectorAll('.channel-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => loadChannelCopy(btn.dataset.channel));
+  });
+  $('channelRetry').addEventListener('click', () => {
+    channelCopyCache[activeChannel] = null;
+    loadChannelCopy(activeChannel);
+  });
+
+  // ─── Form submit (the orchestrator) ────────────────────────────
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    formError.textContent = '';
+    const businessName = $('businessName').value.trim();
+    const sortOrder = $('sortOrder').value;
+
+    if (!businessName) {
+      formError.textContent = 'Please enter the business name and address.';
+      return;
+    }
+
+    runBtn.disabled = true;
+    runBtn.textContent = 'Working…';
+    $('stepsCard').classList.remove('hidden');
+    $('placeWrap').classList.add('hidden');
+    $('resultsWrap').classList.add('hidden');
+    $('noticeBanner').classList.add('hidden');
+    $('errBox').classList.add('hidden');
+    $('errBox').textContent = '';
+    $('stepsHeading').textContent = 'Google Places Pipeline';
+
+    // Reset Section 1 / Section 2 state for the new run
+    $('painPointsList').innerHTML = '';
+    $('painPointsList').classList.add('hidden');
+    $('painPointsError').classList.add('hidden');
+    $('painPointsSkeleton').classList.remove('hidden');
+    $('channelRendered').innerHTML = '';
+    $('channelError').classList.add('hidden');
+    $('channelSkeleton').classList.remove('hidden');
+
+    try {
+      const result = await runGooglePipeline({ businessName, sortOrder });
+
+      renderResults(result.placeMetadata, result.analysis, result.source);
+
+      // Section 1 → Section 2 (chained: channel copy needs pain points first)
+      const cohortMeta = COHORTS[result.analysis.primaryCohort] || { tag: '' };
+      const painPoints = await generatePainPoints(result.placeMetadata, result.reviews);
+      resetChannelSection(
+        result.placeMetadata.name,
+        painPoints,
+        result.analysis.primaryCohort,
+        cohortMeta.tag,
+        result.reviews,
+      );
+    } catch (err) {
+      console.error(err);
+      markActiveStepError();
+      showError(err.message || 'Something went wrong.');
+    } finally {
+      runBtn.disabled = false;
+      runBtn.textContent = 'Analyze Merchant →';
+    }
+  });
+</script>
+</body>
+</html>
