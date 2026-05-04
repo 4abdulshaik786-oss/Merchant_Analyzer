@@ -421,7 +421,7 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
 
       // Push/Banner: only mention 1 issue (per locked decision)
       pushBody = isSevere
-        ? `Repeated ${issueWord} complaints? Pi Commerce can bring them back. Try Now.`
+        ? `Repeated ${issueWord} complaints pushing customers away? Pi Commerce can bring them back. Try Now.`
         : `${capitalize(issueWord)} complaints pushing customers away? Pi Commerce can bring them back. Try Now.`;
       bannerBody = pushBody;
       bullet1 = 'Wins back lost customers';
