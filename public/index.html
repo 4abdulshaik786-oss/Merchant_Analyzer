@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Merchant Review Analyzer</title>
+<title>Pi Commerce Merchant Analyzer</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -100,7 +100,7 @@
   .step .step-detail { font-size: 12px; color: #888; margin-top: 2px; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 
-  /* Place confirmation card (Google only) */
+  /* Place confirmation card */
   .place-card {
     background: linear-gradient(135deg, #fff 0%, #fafafa 100%);
     border: 1px solid #e8e8e6;
@@ -144,6 +144,8 @@
     font-size: 12px; font-weight: 500;
   }
   .chip.primary { background: #1a1a1a; color: #fff; }
+  .chip.severe   { background: #fee2e2; color: #991b1b; }
+  .chip.issue    { background: #fef3c7; color: #92400e; }
 
   .summary-box {
     background: #fdfdfc;
@@ -156,50 +158,37 @@
     margin-bottom: 1rem;
   }
 
-  /* ─── Section 1: Pain Point Insights ─── */
-  .pain-points-card h2 {
+  /* ─── Classification card ─── */
+  .classification-card h2 {
     font-size: 16px; font-weight: 600; color: #1a1a1a;
     text-transform: none; letter-spacing: 0;
     margin-bottom: 4px;
   }
-  .pain-points-card .pp-sub {
+  .classification-card .cls-sub {
     font-size: 12px; color: #888; margin-bottom: 14px;
   }
-  .pp-list { display: flex; flex-direction: column; gap: 14px; }
-  .pp-item {
-    background: #fdfdfc;
-    border: 1px solid #ececea;
-    border-left: 3px solid #f59e0b;
-    border-radius: 10px;
-    padding: 12px 16px;
+  .angle-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 14px; border-radius: 999px;
+    background: #fdfbf7;
+    border: 1px solid #e8e8e6;
+    border-left: 4px solid #888;
+    font-size: 14px; font-weight: 600; color: #1a1a1a;
   }
-  .pp-head {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    gap: 10px; margin-bottom: 6px;
+  .angle-pill .angle-tag {
+    font-size: 12px; font-weight: 400; color: #777; font-style: italic;
   }
-  .pp-pain {
-    font-size: 14px; font-weight: 600; color: #1a1a1a; line-height: 1.4;
+  .cls-meta-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-top: 12px;
   }
-  .pp-freq {
-    flex-shrink: 0;
-    font-size: 11px; font-weight: 600;
-    color: #92400e; background: #fef3c7;
-    padding: 3px 9px; border-radius: 12px;
-    white-space: nowrap;
-  }
-  .pp-quotes { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
-  .pp-quote {
-    font-size: 13px; color: #555; line-height: 1.55;
-    padding-left: 12px; border-left: 2px solid #fde68a;
-    font-style: italic;
-  }
-  .pp-quote .q-meta {
-    display: block;
-    font-size: 11px; color: #999;
-    font-style: normal; margin-top: 3px;
+  .cls-meta-row .meta-label {
+    font-size: 11px; font-weight: 600; color: #999;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    margin-right: 6px; display: flex; align-items: center;
   }
 
-  /* ─── Section 2: Channel Creative Preview ─── */
+  /* ─── Channel Creative Preview ─── */
   .channel-card h2 {
     font-size: 16px; font-weight: 600; color: #1a1a1a;
     text-transform: none; letter-spacing: 0; margin-bottom: 4px;
@@ -341,57 +330,13 @@
   .section-skeleton .skeleton-line:nth-child(3) { width: 88%; }
   .section-skeleton .skeleton-line:nth-child(4) { width: 65%; }
 
-  /* Cohort cards */
-  .cohorts-grid { display: grid; gap: 12px; margin-top: 12px; }
-  .cohort-card {
-    background: #fff;
-    border: 1px solid #e8e8e6;
-    border-left: 4px solid #888;
-    border-radius: 10px;
-    padding: 14px 18px;
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-  .cohort-card.primary {
-    background: #fdfbf7;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-  }
-  .cohort-card .ch-head {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 4px;
-  }
-  .cohort-card .ch-name { font-size: 15px; font-weight: 600; color: #1a1a1a; }
-  .cohort-card .ch-tag { font-size: 12px; color: #777; font-style: italic; margin-bottom: 8px; }
-  .cohort-card .score-badge {
-    padding: 3px 10px; border-radius: 14px; font-size: 12px; font-weight: 600;
-    background: #f0f0ee; color: #1a1a1a;
-  }
-  .cohort-card.primary .score-badge { background: #1a1a1a; color: #fff; }
-  .progress {
-    height: 6px; background: #f0f0ee; border-radius: 3px; overflow: hidden;
-    margin: 8px 0 10px;
-  }
-  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease-out; }
-  .evidence-list { list-style: none; padding: 0; margin-top: 6px; }
-  .evidence-list li {
-    font-size: 13px; color: #555;
-    padding: 4px 0 4px 14px;
-    position: relative;
-    line-height: 1.5;
-    font-style: italic;
-  }
-  .evidence-list li::before {
-    content: '\201C'; position: absolute; left: 0; top: 2px;
-    color: #aaa; font-size: 18px; font-family: Georgia, serif;
-    font-style: normal;
-  }
-
   .err-box {
     background: #fef2f2; border: 1px solid #fecaca;
     color: #991b1b; padding: 12px 14px;
     border-radius: 8px; font-size: 13px; margin-top: 12px;
   }
 
-  /* ─── Shared loading + error styles (used by Section 1 & Section 2) ─── */
+  /* ─── Shared loading + error styles ─── */
   .skeleton-line {
     height: 12px; background: linear-gradient(90deg, #ececea 0%, #f5f5f3 50%, #ececea 100%);
     background-size: 200% 100%;
@@ -424,8 +369,8 @@
 </head>
 <body>
 <div class="container">
-  <h1>Merchant Review Analyzer</h1>
-  <p class="subtitle">Find a business → fetch reviews → classify into Pi Commerce cohorts → draft outreach.</p>
+  <h1>Pi Commerce Merchant Analyzer</h1>
+  <p class="subtitle">Find a business → fetch reviews → classify into a Pi Commerce angle → generate WhatsApp / Push / Banner copy.</p>
 
   <!-- ─── INPUT FORM ──────────────────────────────────────────────── -->
   <div class="card" id="formCard">
@@ -462,7 +407,7 @@
     <div class="err-box hidden" id="errBox"></div>
   </div>
 
-  <!-- ─── PLACE CONFIRMATION (Google only) ───────────────────────── -->
+  <!-- ─── PLACE CONFIRMATION ──────────────────────────────────────── -->
   <div class="hidden" id="placeWrap">
     <div class="place-card" id="placeCard"></div>
   </div>
@@ -472,6 +417,7 @@
 
   <!-- ─── RESULTS ────────────────────────────────────────────────── -->
   <div class="hidden" id="resultsWrap">
+
     <div class="card">
       <div class="results-header">
         <div class="merchant-name" id="resName"></div>
@@ -482,28 +428,17 @@
       <div class="summary-box" id="resSummary"></div>
     </div>
 
-    <!-- ─── SECTION 1: PAIN POINT INSIGHTS ───────────────────────── -->
-    <div class="card pain-points-card" id="painPointsCard">
-      <h2 id="painPointsTitle">What customers are saying</h2>
-      <div class="pp-sub">Pain points extracted from the reviews fetched under the current sort order.</div>
-
-      <div class="section-skeleton" id="painPointsSkeleton">
-        <div class="skeleton-line"></div>
-        <div class="skeleton-line"></div>
-        <div class="skeleton-line"></div>
-        <div class="skeleton-line"></div>
-      </div>
-      <div class="msg-error hidden" id="painPointsError">
-        <span>Could not extract pain points.</span>
-        <button type="button" class="retry-btn" id="painPointsRetry">Retry</button>
-      </div>
-      <div class="pp-list hidden" id="painPointsList"></div>
+    <!-- ─── SECTION 1: CLASSIFICATION DETAILS ───────────────────────── -->
+    <div class="card classification-card" id="classificationCard">
+      <h2>Pi Commerce Classification</h2>
+      <div class="cls-sub">Angle, severity, and detected issues from this merchant's reviews.</div>
+      <div id="classificationBody"></div>
     </div>
 
     <!-- ─── SECTION 2: CHANNEL CREATIVE PREVIEW ──────────────────── -->
     <div class="card channel-card" id="channelCard">
       <h2>Channel Creative Preview</h2>
-      <div class="ch-sub">Personalised copy for this merchant — generated from the pain points above.</div>
+      <div class="ch-sub">Personalised copy for this merchant — generated from the classification above.</div>
 
       <div class="channel-toggle" role="tablist">
         <button type="button" data-channel="whatsapp" class="active">WhatsApp</button>
@@ -512,35 +447,22 @@
       </div>
 
       <div class="channel-preview" id="channelPreview">
-        <div class="section-skeleton" id="channelSkeleton">
-          <div class="skeleton-line"></div>
-          <div class="skeleton-line"></div>
-          <div class="skeleton-line"></div>
-        </div>
-        <div class="msg-error hidden" id="channelError">
-          <span>Could not generate copy for this channel.</span>
-          <button type="button" class="retry-btn" id="channelRetry">Retry</button>
-        </div>
         <div id="channelRendered"></div>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>Cohort Breakdown</h2>
-      <div class="cohorts-grid" id="resCohorts"></div>
     </div>
   </div>
 </div>
 
 <script>
-  // ─── Cohort metadata (display) ─────────────────────────────────
-  const COHORTS = {
-    acquisition_gap:    { name: 'Acquisition Gap',     tag: 'Nobody knows we exist',                        color: '#3b82f6' },
-    retention_winback:  { name: 'Retention / Winback', tag: 'Our regulars stopped coming',                  color: '#a855f7' },
-    frequency:          { name: 'Frequency',           tag: 'They like us but only visit twice a year',     color: '#10b981' },
-    off_peak_imbalance: { name: 'Off-Peak Imbalance',  tag: 'Crushed at lunch, dead at 4 PM',               color: '#f59e0b' },
-    competitive_loss:   { name: 'Competitive Loss',    tag: 'Customers are going to the shop next door',    color: '#ef4444' },
-    personalization_gap:{ name: 'Personalization Gap', tag: 'Our marketing is irrelevant to them',          color: '#06b6d4' },
+  // ─── Pi Commerce angle metadata (display labels + colors) ────────
+  const ANGLES = {
+    Negative:           { name: 'Negative',           tag: 'Customer complaints driving people away',    color: '#ef4444' },
+    Decline:            { name: 'Decline',            tag: 'Once-loyal customers have stopped coming',   color: '#f59e0b' },
+    LowTraffic:         { name: 'Low Traffic',        tag: 'Empty store, low footfall',                  color: '#a855f7' },
+    Neutral:            { name: 'Neutral',            tag: 'Average reviews, nothing memorable',         color: '#94a3b8' },
+    HiddenCeiling:      { name: 'Hidden Ceiling',     tag: 'Loved, but unknown to most nearby',          color: '#10b981' },
+    CompetitorCatchUp:  { name: 'Competitor Catch-Up', tag: 'Competition gaining ground',                color: '#3b82f6' },
+    SilentChurn:        { name: 'Silent Churn',       tag: 'Happy customers, but few return',            color: '#06b6d4' },
   };
 
   // ─── DOM refs ──────────────────────────────────────────────────
@@ -550,7 +472,6 @@
   const formError = $('formError');
 
   // ─── Step helpers ──────────────────────────────────────────────
-  // Each pipeline declares its own step list. We render dynamically.
   function renderSteps(stepLabels) {
     const c = $('stepsContainer');
     c.innerHTML = '';
@@ -612,22 +533,18 @@
     if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
     return data;
   }
-  async function apiGet(path) {
-    const r = await fetch(API + path);
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-    return data;
-  }
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   // ════════════════════════════════════════════════════════════════
-  // GOOGLE PLACES PIPELINE (3 UI steps)
+  // PIPELINE — 3 steps now (was 5 before the rewrite)
+  //   1. Find place      → /api/google/find-place
+  //   2. Fetch reviews   → /api/google/reviews
+  //   3. Classify + copy → /api/generate-copy   (single LLM call)
   // ════════════════════════════════════════════════════════════════
-  async function runGooglePipeline({ businessName, sortOrder }) {
+  async function runPipeline({ businessName, sortOrder }) {
     renderSteps([
       'Finding place via Google Places API',
       'Fetching reviews',
-      'Analyzing with GPT-4.1-mini',
+      'Classifying merchant & generating copy',
     ]);
 
     // Step 1 — find place
@@ -643,29 +560,32 @@
       sortOrder,
       placeMetadata: {
         name: place.name,
-        address: place.formattedAddress,
+        formattedAddress: place.formattedAddress,
         rating: place.rating,
         totalReviews: place.totalReviews,
       },
     });
     if (!result.reviews || result.reviews.length === 0) {
-      throw new Error('Google Places returned no review text for this place.');
+      throw new Error('Google Places returned no reviews for this place.');
     }
-    setStep(2, 'done', `Fetched ${result.reviews.length} reviews from Google Places (max 5)`);
+    setStep(2, 'done', `Fetched ${result.reviews.length} review${result.reviews.length === 1 ? '' : 's'} (max 5)`);
 
-    // Step 3 — GPT analysis
-    setStep(3, 'active', `Sending ${result.reviews.length} reviews to GPT-4.1-mini…`);
+    // Step 3 — classify + generate copy in a single backend call
+    setStep(3, 'active', `Sending to LLM…`);
     const placeMetadata = {
       name: place.name,
-      address: place.formattedAddress,
       formattedAddress: place.formattedAddress,
       rating: place.rating,
       totalReviews: place.totalReviews,
     };
-    const analysis = await apiPost('/api/analyze', { reviews: result.reviews, placeMetadata });
-    setStep(3, 'done', `Primary cohort: ${analysis.primaryCohort}`);
+    const out = await apiPost('/api/generate-copy', {
+      reviews: result.reviews,
+      placeMetadata,
+    });
+    const angleLabel = (ANGLES[out.classification.angle] || { name: out.classification.angle }).name;
+    setStep(3, 'done', `Angle: ${angleLabel}`);
 
-    return { analysis, placeMetadata, source: 'google_places', reviews: result.reviews };
+    return { ...out, source: 'google_places' };
   }
 
   // ─── Renderers ─────────────────────────────────────────────────
@@ -681,13 +601,14 @@
       </div>`;
   }
 
-  function renderResults(placeMetadata, analysis, source) {
+  function renderResults({ classification, copy, placeMetadata }, source) {
     const wrap = $('resultsWrap');
     wrap.classList.remove('hidden');
 
     $('resName').textContent = placeMetadata.name || '—';
-    $('resAddr').textContent = placeMetadata.formattedAddress || placeMetadata.address || '';
+    $('resAddr').textContent = placeMetadata.formattedAddress || '';
 
+    // Source badge
     const badgeWrap = $('sourceBadgeWrap');
     badgeWrap.innerHTML = '';
     const badge = document.createElement('span');
@@ -695,27 +616,27 @@
     badge.textContent = 'Analyzed via Google Places';
     badgeWrap.appendChild(badge);
 
-    const primary = analysis.primaryCohort;
-    const primaryMeta = COHORTS[primary] || { name: primary };
+    // Top chips: rating, review count, angle
+    const angleMeta = ANGLES[classification.angle] || { name: classification.angle };
     const chips = $('resChips');
     chips.innerHTML = '';
-    chips.appendChild(chipEl(`${analysis.totalReviewsAnalyzed ?? '—'} reviews analyzed`));
-    chips.appendChild(chipEl(`Avg rating ★ ${analysis.avgRating ?? '—'}`));
-    chips.appendChild(chipEl(`Primary: ${primaryMeta.name}`, true));
+    chips.appendChild(chipEl(`★ ${placeMetadata.rating ?? '—'}`));
+    chips.appendChild(chipEl(`${placeMetadata.totalReviews ?? 0} reviews`));
+    chips.appendChild(chipEl(`Angle: ${angleMeta.name}`, true));
 
-    $('resSummary').textContent = analysis.summary || '—';
+    // Summary
+    $('resSummary').textContent = classification.summary || '—';
 
-    const grid = $('resCohorts');
-    grid.innerHTML = '';
-    (analysis.allCohorts || [])
-      .filter(c => (c.score || 0) > 10)
-      .sort((a, b) => b.score - a.score)
-      .forEach(c => grid.appendChild(cohortCard(c, c.id === primary)));
+    // Classification details card
+    renderClassification(classification);
+
+    // Channel preview state
+    resetChannelSection(copy);
 
     // Yellow notice for Google source
     const banner = $('noticeBanner');
     if (source === 'google_places') {
-      banner.textContent = '⚠ Analysis based on only 5 reviews (Google Places API limit).';
+      banner.textContent = '⚠ Analysis based on reviews returned by the Google Places API (max 5 per place).';
       banner.classList.remove('hidden');
     } else {
       banner.classList.add('hidden');
@@ -724,31 +645,61 @@
     wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  function chipEl(text, primary) {
+  function chipEl(text, primary, extraClass) {
     const s = document.createElement('span');
-    s.className = 'chip' + (primary ? ' primary' : '');
+    s.className = 'chip' + (primary ? ' primary' : '') + (extraClass ? ' ' + extraClass : '');
     s.textContent = text;
     return s;
   }
 
-  function cohortCard(c, isPrimary) {
-    const meta = COHORTS[c.id] || { name: c.id, tag: '', color: '#888' };
-    const card = document.createElement('div');
-    card.className = 'cohort-card' + (isPrimary ? ' primary' : '');
-    card.style.borderLeftColor = meta.color;
+  function renderClassification(cls) {
+    const meta = ANGLES[cls.angle] || { name: cls.angle, tag: '', color: '#888' };
+    const body = $('classificationBody');
+    body.innerHTML = '';
 
-    const evidence = (c.evidence || []).slice(0, 3)
-      .map(e => `<li>${escapeHtml(e)}</li>`).join('');
+    // Angle pill
+    const pill = document.createElement('span');
+    pill.className = 'angle-pill';
+    pill.style.borderLeftColor = meta.color;
+    pill.innerHTML = `<span>${escapeHtml(meta.name)}</span><span class="angle-tag">${escapeHtml(meta.tag)}</span>`;
+    body.appendChild(pill);
 
-    card.innerHTML = `
-      <div class="ch-head">
-        <div class="ch-name">${isPrimary ? '★ ' : ''}${escapeHtml(meta.name)}</div>
-        <span class="score-badge">${c.score}%</span>
-      </div>
-      <div class="ch-tag">"${escapeHtml(meta.tag)}"</div>
-      <div class="progress"><div class="progress-fill" style="width:${c.score}%; background:${meta.color};"></div></div>
-      <ul class="evidence-list">${evidence}</ul>`;
-    return card;
+    // Severity flag (only for Negative + isSevere)
+    if (cls.isSevere && cls.angle === 'Negative') {
+      const sev = chipEl('Severe — repeated complaints', false, 'severe');
+      sev.style.marginLeft = '8px';
+      body.appendChild(sev);
+    }
+
+    // Issues + business category in one row
+    const row = document.createElement('div');
+    row.className = 'cls-meta-row';
+
+    if (Array.isArray(cls.issues) && cls.issues.length) {
+      const lbl = document.createElement('span');
+      lbl.className = 'meta-label';
+      lbl.textContent = 'Issues:';
+      row.appendChild(lbl);
+      cls.issues.forEach(iss => row.appendChild(chipEl(iss, false, 'issue')));
+    } else {
+      const lbl = document.createElement('span');
+      lbl.className = 'meta-label';
+      lbl.textContent = 'Issues: none detected';
+      row.appendChild(lbl);
+    }
+
+    body.appendChild(row);
+
+    if (cls.businessCategory && cls.businessCategory !== 'Other') {
+      const row2 = document.createElement('div');
+      row2.className = 'cls-meta-row';
+      const lbl2 = document.createElement('span');
+      lbl2.className = 'meta-label';
+      lbl2.textContent = 'Category:';
+      row2.appendChild(lbl2);
+      row2.appendChild(chipEl(cls.businessCategory));
+      body.appendChild(row2);
+    }
   }
 
   function escapeHtml(s) {
@@ -758,155 +709,39 @@
   }
 
   // ════════════════════════════════════════════════════════════════
-  // SECTION 1 — PAIN POINT INSIGHTS
-  // ════════════════════════════════════════════════════════════════
-  let lastPainPointsPayload = null;
-  let lastPainPoints = [];
-
-  async function generatePainPoints(placeMetadata, reviews) {
-    lastPainPointsPayload = { placeMetadata, reviews };
-    $('painPointsTitle').textContent = `What customers are saying about ${placeMetadata.name}`;
-
-    $('painPointsSkeleton').classList.remove('hidden');
-    $('painPointsError').classList.add('hidden');
-    $('painPointsList').classList.add('hidden');
-
-    try {
-      const { painPoints } = await apiPost('/api/pain-points', { reviews, placeMetadata });
-      lastPainPoints = Array.isArray(painPoints) ? painPoints : [];
-      renderPainPoints(lastPainPoints);
-      return lastPainPoints;
-    } catch (e) {
-      console.error('[pain-points] failed:', e);
-      $('painPointsSkeleton').classList.add('hidden');
-      $('painPointsError').classList.remove('hidden');
-      lastPainPoints = [];
-      return [];
-    }
-  }
-
-  function renderPainPoints(painPoints) {
-    const list = $('painPointsList');
-    $('painPointsSkeleton').classList.add('hidden');
-    list.innerHTML = '';
-
-    if (!painPoints.length) {
-      list.classList.remove('hidden');
-      list.innerHTML = '<div style="font-size:13px;color:#888;">No specific pain points surfaced from these reviews.</div>';
-      return;
-    }
-
-    painPoints.forEach(pp => {
-      const item = document.createElement('div');
-      item.className = 'pp-item';
-
-      const head = document.createElement('div');
-      head.className = 'pp-head';
-      head.innerHTML = `
-        <div class="pp-pain">${escapeHtml(pp.pain || '')}</div>
-        <div class="pp-freq">Mentioned in ${pp.frequency || 0} review${pp.frequency === 1 ? '' : 's'}</div>
-      `;
-      item.appendChild(head);
-
-      if (Array.isArray(pp.quotes) && pp.quotes.length) {
-        const quotes = document.createElement('div');
-        quotes.className = 'pp-quotes';
-        pp.quotes.slice(0, 2).forEach(q => {
-          const qd = document.createElement('div');
-          qd.className = 'pp-quote';
-          const meta = [q.author, q.date].filter(Boolean).join(' · ');
-          qd.innerHTML = `"${escapeHtml(q.text || '')}"${meta ? `<span class="q-meta">— ${escapeHtml(meta)}</span>` : ''}`;
-          quotes.appendChild(qd);
-        });
-        item.appendChild(quotes);
-      }
-
-      list.appendChild(item);
-    });
-    list.classList.remove('hidden');
-  }
-
-  $('painPointsRetry').addEventListener('click', () => {
-    if (!lastPainPointsPayload) return;
-    generatePainPoints(lastPainPointsPayload.placeMetadata, lastPainPointsPayload.reviews);
-  });
-
-  // ════════════════════════════════════════════════════════════════
-  // SECTION 2 — CHANNEL CREATIVE PREVIEW
+  // CHANNEL CREATIVE PREVIEW
+  // The new backend returns all 3 channels at once: copy.whatsapp,
+  // copy.push, copy.banner — each is a plain string. The toggle
+  // just switches which one to render — no extra API calls.
   // ════════════════════════════════════════════════════════════════
   let activeChannel = 'whatsapp';
-  let channelMerchantContext = null;
-  // Per-channel cache so toggling back doesn't re-call OpenAI.
-  // Cleared on every new analysis.
-  let channelCopyCache = { whatsapp: null, push: null, banner: null };
+  let currentCopy = null;
 
-  function resetChannelSection(merchantName, painPoints, primaryCohort, cohortTagline, reviews) {
-    channelMerchantContext = { merchantName, painPoints, primaryCohort, cohortTagline, reviews: reviews || [] };
-    channelCopyCache = { whatsapp: null, push: null, banner: null };
+  function resetChannelSection(copy) {
+    currentCopy = copy;
     activeChannel = 'whatsapp';
     document.querySelectorAll('.channel-toggle button').forEach(b => {
       b.classList.toggle('active', b.dataset.channel === activeChannel);
     });
-    loadChannelCopy(activeChannel);
+    renderChannelPreview(activeChannel);
   }
 
-  async function loadChannelCopy(channel) {
-    activeChannel = channel;
-    document.querySelectorAll('.channel-toggle button').forEach(b => {
-      b.classList.toggle('active', b.dataset.channel === channel);
-    });
-
-    $('channelError').classList.add('hidden');
-    $('channelRendered').innerHTML = '';
-
-    // Use cached copy if available
-    if (channelCopyCache[channel]) {
-      $('channelSkeleton').classList.add('hidden');
-      renderChannelPreview(channel, channelCopyCache[channel]);
-      return;
-    }
-
-    if (!channelMerchantContext) return;
-    $('channelSkeleton').classList.remove('hidden');
-
-    try {
-      const { copy } = await apiPost('/api/channel-copy', {
-        channel,
-        merchantName: channelMerchantContext.merchantName,
-        painPoints: channelMerchantContext.painPoints || [],
-        primaryCohort: channelMerchantContext.primaryCohort,
-        cohortTagline: channelMerchantContext.cohortTagline,
-        reviews: channelMerchantContext.reviews || [],
-      });
-      channelCopyCache[channel] = copy;
-      // Only render if user hasn't toggled to a different channel meanwhile
-      if (activeChannel === channel) {
-        $('channelSkeleton').classList.add('hidden');
-        renderChannelPreview(channel, copy);
-      }
-    } catch (e) {
-      console.error('[channel-copy] failed:', e);
-      if (activeChannel === channel) {
-        $('channelSkeleton').classList.add('hidden');
-        $('channelError').classList.remove('hidden');
-      }
-    }
-  }
-
-  function renderChannelPreview(channel, copy) {
+  function renderChannelPreview(channel) {
     const target = $('channelRendered');
     target.innerHTML = '';
+    if (!currentCopy) return;
 
     if (channel === 'whatsapp') {
       const wrap = document.createElement('div');
       wrap.className = 'wa-preview';
       wrap.innerHTML = `
         <div class="wa-bubble">
-          <pre class="wa-message">${escapeHtml(copy.message || '')}</pre>
+          <pre class="wa-message">${escapeHtml(currentCopy.whatsapp || '')}</pre>
           <span class="wa-time">${currentTimeShort()} ✓✓</span>
         </div>`;
       target.appendChild(wrap);
     } else if (channel === 'push') {
+      const { title, body } = splitPushForDisplay(currentCopy.push || '');
       const wrap = document.createElement('div');
       wrap.className = 'push-preview';
       wrap.innerHTML = `
@@ -914,19 +749,46 @@
           <div class="push-icon">Pi</div>
           <div class="push-content">
             <div class="push-app"><span>PI COMMERCE</span><span>now</span></div>
-            <div class="push-title">${escapeHtml(copy.title || '')}</div>
-            <div class="push-body">${escapeHtml(copy.body || '')}</div>
+            <div class="push-title">${escapeHtml(title)}</div>
+            <div class="push-body">${escapeHtml(body)}</div>
           </div>
         </div>`;
       target.appendChild(wrap);
     } else if (channel === 'banner') {
+      const { line, cta } = splitBannerForDisplay(currentCopy.banner || '');
       const wrap = document.createElement('div');
       wrap.className = 'banner-preview';
       wrap.innerHTML = `
-        <div class="banner-line">${escapeHtml(copy.line || '')}</div>
-        <button type="button" class="banner-cta" tabindex="-1">${escapeHtml(copy.cta || 'Notify Me')}</button>`;
+        <div class="banner-line">${escapeHtml(line)}</div>
+        <button type="button" class="banner-cta" tabindex="-1">${escapeHtml(cta)}</button>`;
       target.appendChild(wrap);
     }
+  }
+
+  // Split push string into title (the hook) and body (the rest).
+  // Prefer splitting at the first "?" since most hooks are questions.
+  // Fall back to ". " (period + whitespace) so we never split inside
+  // decimals like "4.6".
+  function splitPushForDisplay(str) {
+    if (!str) return { title: '', body: '' };
+    const qIdx = str.indexOf('?');
+    if (qIdx >= 0) {
+      return {
+        title: str.slice(0, qIdx + 1).trim(),
+        body: str.slice(qIdx + 1).trim(),
+      };
+    }
+    const m = str.match(/^(.+?\.)\s+(.*)$/);
+    if (m) return { title: m[1].trim(), body: m[2].trim() };
+    return { title: str, body: '' };
+  }
+
+  // Banner uses "Try Now." as a fixed trailing CTA. Strip it from the
+  // line and put it in the dedicated CTA button.
+  function splitBannerForDisplay(str) {
+    if (!str) return { line: '', cta: 'Try Now' };
+    const trimmed = str.replace(/\s*Try Now\.\s*$/i, '').trim();
+    return { line: trimmed, cta: 'Try Now' };
   }
 
   function currentTimeShort() {
@@ -940,11 +802,13 @@
 
   // Wire toggle buttons (only once)
   document.querySelectorAll('.channel-toggle button').forEach(btn => {
-    btn.addEventListener('click', () => loadChannelCopy(btn.dataset.channel));
-  });
-  $('channelRetry').addEventListener('click', () => {
-    channelCopyCache[activeChannel] = null;
-    loadChannelCopy(activeChannel);
+    btn.addEventListener('click', () => {
+      activeChannel = btn.dataset.channel;
+      document.querySelectorAll('.channel-toggle button').forEach(b => {
+        b.classList.toggle('active', b.dataset.channel === activeChannel);
+      });
+      renderChannelPreview(activeChannel);
+    });
   });
 
   // ─── Form submit (the orchestrator) ────────────────────────────
@@ -967,32 +831,11 @@
     $('noticeBanner').classList.add('hidden');
     $('errBox').classList.add('hidden');
     $('errBox').textContent = '';
-    $('stepsHeading').textContent = 'Google Places Pipeline';
-
-    // Reset Section 1 / Section 2 state for the new run
-    $('painPointsList').innerHTML = '';
-    $('painPointsList').classList.add('hidden');
-    $('painPointsError').classList.add('hidden');
-    $('painPointsSkeleton').classList.remove('hidden');
-    $('channelRendered').innerHTML = '';
-    $('channelError').classList.add('hidden');
-    $('channelSkeleton').classList.remove('hidden');
+    $('stepsHeading').textContent = 'Pipeline';
 
     try {
-      const result = await runGooglePipeline({ businessName, sortOrder });
-
-      renderResults(result.placeMetadata, result.analysis, result.source);
-
-      // Section 1 → Section 2 (chained: channel copy needs pain points first)
-      const cohortMeta = COHORTS[result.analysis.primaryCohort] || { tag: '' };
-      const painPoints = await generatePainPoints(result.placeMetadata, result.reviews);
-      resetChannelSection(
-        result.placeMetadata.name,
-        painPoints,
-        result.analysis.primaryCohort,
-        cohortMeta.tag,
-        result.reviews,
-      );
+      const result = await runPipeline({ businessName, sortOrder });
+      renderResults(result, result.source);
     } catch (err) {
       console.error(err);
       markActiveStepError();
