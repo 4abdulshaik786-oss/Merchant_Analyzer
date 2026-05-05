@@ -15,7 +15,7 @@
       "avg_rating": 4.2,
       "total_reviews": 1184,
       "reviews_analyzed": 5,
-      "summary": "Ba-Dastoor - Authentic Royal Hyderabadi Cuisine (Kohe-Fiza) is rated 4.2 across 1184 reviews. Customers praise the delicious and fresh food along with attentive and polite service, though some express concern about the use of red coloring in the gravies affecting perceived quality.",
+      "summary": "Ba-Dastoor - Authentic Royal Hyderabadi Cuisine (Kohe-Fiza) is rated 4.2 across 1184 reviews. Customers praise the food quality and attentive service, though some express concern about the use of red coloring in the gravies affecting perceived quality and healthiness.",
       "key_insights": [
         "quality",
         "service"
@@ -37,8 +37,8 @@
     "meta": {
       "status": "success",
       "error_message": null,
-      "processed_at": "2026-05-05T13:08:04.147Z",
-      "saved_at": "2026-05-05T13:08:04.148Z"
+      "processed_at": "2026-05-05T13:28:11.742Z",
+      "saved_at": "2026-05-05T13:28:11.745Z"
     }
   },
   {
@@ -57,7 +57,7 @@
       "avg_rating": 4.4,
       "total_reviews": 6542,
       "reviews_analyzed": 5,
-      "summary": "Triveni Terrace Cafe is rated 4.4 across 6542 reviews. Customers appreciate its calm, peaceful ambiance and fresh food, though some mention a wait time and perceive the pricing as a bit high.",
+      "summary": "Triveni Terrace Cafe is rated 4.4 across 6542 reviews. Customers appreciate its calm, cozy ambiance and fresh food, though some mention a notable wait time and perceive the pricing as a bit high.",
       "key_insights": [
         "wait time",
         "pricing"
@@ -79,8 +79,8 @@
     "meta": {
       "status": "success",
       "error_message": null,
-      "processed_at": "2026-05-05T13:08:08.977Z",
-      "saved_at": "2026-05-05T13:08:08.978Z"
+      "processed_at": "2026-05-05T13:28:17.425Z",
+      "saved_at": "2026-05-05T13:28:17.427Z"
     }
   },
   {
@@ -94,12 +94,12 @@
       }
     },
     "analysis": {
-      "cohort": "Negative",
-      "cohort_tagline": "Customer complaints driving people away",
+      "cohort": "SilentChurn",
+      "cohort_tagline": "Happy customers, but few return",
       "avg_rating": 4.2,
       "total_reviews": 17859,
       "reviews_analyzed": 5,
-      "summary": "Sagar Gaire is rated 4.2 across 17,859 reviews. Customers praise the food quality and variety, highlighting dosa, sandwiches, and cold coffee, though some mention seating and parking challenges as well as pricing concerns.",
+      "summary": "Sagar Gaire is rated 4.2 across 17,859 reviews. Customers praise the food quality, variety, and friendly service, though some mention seating availability issues and pricing concerns during busy times.",
       "key_insights": [
         "seating",
         "pricing"
@@ -107,22 +107,22 @@
     },
     "content": {
       "whatsapp": {
-        "message": "Hi Sagar Gaire,\n\nSeating and pricing complaints are pushing customers away.\n\nPi Commerce:\n✅ Wins back lost customers\n✅ No agency or staff needed\n✅ Works on its own\n\nLaunch Now"
+        "message": "Hi Sagar Gaire,\n\nYou're rated 4.2 — but happy customers rarely return on their own.\n\nPi Commerce:\n✅ Brings happy customers back\n✅ No agency or staff needed\n✅ Works on its own\n\nLaunch Now"
       },
       "push": {
-        "title": "Seating complaints losing customers?",
-        "body": "Pi Commerce wins them back. Try Now."
+        "title": "Rated 4.2 but happy customers rarely return?",
+        "body": "Pi Commerce brings them back. Try Now."
       },
       "banner": {
-        "headline": "Seating complaints losing customers?",
-        "subtext": "Pi Commerce wins your customers back."
+        "headline": "Rated 4.2, but customers rarely return?",
+        "subtext": "Pi Commerce brings them back."
       }
     },
     "meta": {
       "status": "success",
       "error_message": null,
-      "processed_at": "2026-05-05T13:08:13.676Z",
-      "saved_at": "2026-05-05T13:08:13.677Z"
+      "processed_at": "2026-05-05T13:28:22.191Z",
+      "saved_at": "2026-05-05T13:28:22.193Z"
     }
   },
   {
@@ -163,8 +163,8 @@
     "meta": {
       "status": "success",
       "error_message": null,
-      "processed_at": "2026-05-05T13:08:18.787Z",
-      "saved_at": "2026-05-05T13:08:18.788Z"
+      "processed_at": "2026-05-05T13:28:27.004Z",
+      "saved_at": "2026-05-05T13:28:27.006Z"
     }
   },
   {
@@ -202,8 +202,47 @@
     "meta": {
       "status": "success",
       "error_message": null,
-      "processed_at": "2026-05-05T13:10:49.543Z",
-      "saved_at": "2026-05-05T13:10:49.544Z"
+      "processed_at": "2026-05-05T13:28:32.018Z",
+      "saved_at": "2026-05-05T13:28:32.020Z"
+    }
+  },
+  {
+    "merchant_id": "6",
+    "name": "Duma fashions",
+    "profile": {
+      "address": "306 basement, AGCR Rd, Priya Enclave, Karkardooma, Anand Vihar, Delhi, 110092, India",
+      "location": {
+        "latitude": "0.3117562",
+        "longitude": "32.5786151"
+      }
+    },
+    "analysis": {
+      "cohort": "HiddenCeiling",
+      "cohort_tagline": "Loved, but unknown to most nearby",
+      "avg_rating": 4.1,
+      "total_reviews": 19,
+      "reviews_analyzed": 5,
+      "summary": "Duma fashions is rated 4.1 across 19 reviews. Customers praise the nice collection, variety, and custom designer wear options available.",
+      "key_insights": []
+    },
+    "content": {
+      "whatsapp": {
+        "message": "Hi Duma fashions,\n\nYou're rated 4.1 — but hundreds nearby don't know you.\n\nPi Commerce:\n✅ Gets you hundreds of new customers\n✅ No agency or staff needed\n✅ Works on its own\n\nLaunch Now"
+      },
+      "push": {
+        "title": "Rated 4.1 but hundreds nearby don't know you?",
+        "body": "Pi Commerce gets new ones. Try Now."
+      },
+      "banner": {
+        "headline": "Rated 4.1, but unknown nearby?",
+        "subtext": "Pi Commerce gets you new customers."
+      }
+    },
+    "meta": {
+      "status": "success",
+      "error_message": null,
+      "processed_at": "2026-05-05T13:28:36.574Z",
+      "saved_at": "2026-05-05T13:28:36.576Z"
     }
   }
 ]
