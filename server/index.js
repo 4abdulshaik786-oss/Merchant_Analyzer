@@ -467,7 +467,7 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
         ? `You're rated ${ratingStr} — but hundreds nearby don't know you.`
         : `Loved by customers — but hundreds nearby don't know you.`;
       pushBody = ratingHigh
-        ? `Rated ${ratingStr} but Hundreds nearby don't know you? Pi Commerce gets new ones. Try Now.`
+        ? `Rated ${ratingStr} but hundreds nearby don't know you? Pi Commerce gets new ones. Try Now.`
         : `Loved but unknown nearby? Pi Commerce gets new customers. Try Now.`;
       bannerText = ratingHigh
         ? `Rated ${ratingStr}, but unknown nearby?`
@@ -501,7 +501,7 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
         ? `Rated ${ratingStr} but happy customers rarely return? Pi Commerce brings them back. Try Now.`
         : `Happy customers rarely return? Pi Commerce brings them back. Try Now.`;
       bannerText = ratingHigh
-        ? `Rated ${ratingStr}, but few return?`
+        ? `Rated ${ratingStr}, but customers rarely return?`
         : `Happy customers rarely return?`;
       bannerSub = `Pi Commerce brings them back.`;
       bullet1 = 'Brings happy customers back';
@@ -660,6 +660,255 @@ app.post('/api/generate-copy', async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
+// BATCH ENDPOINTS
+// ════════════════════════════════════════════════════════════════════════════
+
+const fs   = require('fs');
+const path2 = require('path');
+const { parse } = require('csv-parse/sync');
+
+// In-memory store for results of the current/last batch run.
+let batchResults = [];
+
+// ── Column-name aliases → canonical field name ────────────────────────────
+function normalizeColumns(record) {
+  const find = (...keys) => {
+    for (const k of keys) {
+      const hit = Object.keys(record).find(r => r.toLowerCase() === k.toLowerCase());
+      if (hit !== undefined) return record[hit];
+    }
+    return undefined;
+  };
+  return {
+    merchant_id: find('merchant_id', 'merchantid', 'merchant id', 'id'),
+    name:        find('name', 'business_name', 'businessname', 'business name'),
+    latitude:    find('latitude', 'lat'),
+    longitude:   find('longitude', 'lng', 'lon', 'long'),
+  };
+}
+
+// GET /api/batch/preview
+// Reads MerchantData.csv from project root and returns normalized rows.
+app.get('/api/batch/preview', (req, res) => {
+  const csvPath = path2.join(process.cwd(), 'MerchantData.csv');
+  if (!fs.existsSync(csvPath)) {
+    return res.status(404).json({ error: 'MerchantData.csv not found in project root' });
+  }
+
+  try {
+    const raw = fs.readFileSync(csvPath, 'utf8');
+    const records = parse(raw, { columns: true, skip_empty_lines: true, trim: true });
+
+    // Validate required columns exist on at least the first row
+    if (records.length > 0) {
+      const norm = normalizeColumns(records[0]);
+      const missing = Object.entries(norm)
+        .filter(([, v]) => v === undefined)
+        .map(([k]) => k);
+      if (missing.length) {
+        return res.status(400).json({
+          error: `Missing required column: ${missing.join(', ')} in MerchantData.csv`,
+        });
+      }
+    }
+
+    const merchants = records
+      .map(normalizeColumns)
+      .filter(m => m.merchant_id !== undefined && m.name !== undefined);
+
+    console.log(`[BATCH] Loaded ${merchants.length} merchants from MerchantData.csv`);
+    res.json({ merchants, total: merchants.length });
+  } catch (e) {
+    console.error('[BATCH] CSV parse error:', e.message);
+    res.status(500).json({ error: `CSV parse error: ${e.message}` });
+  }
+});
+
+// POST /api/batch/find-place-by-coordinates
+// Finds a place using name + lat/lng location bias.
+app.post('/api/batch/find-place-by-coordinates', async (req, res) => {
+  const { name, latitude, longitude, merchant_id } = req.body || {};
+  if (!name || latitude == null || longitude == null) {
+    return res.status(400).json({ error: 'name, latitude, longitude are required' });
+  }
+
+  const tryRadius = async (radius) => {
+    const url =
+      `https://maps.googleapis.com/maps/api/place/textsearch/json` +
+      `?query=${encodeURIComponent(name)}` +
+      `&location=${latitude},${longitude}` +
+      `&radius=${radius}` +
+      `&key=${GOOGLE_API_KEY}`;
+    const r = await fetch(url);
+    return r.json();
+  };
+
+  try {
+    let data = await tryRadius(500);
+    if ((!data.results || data.results.length === 0) && data.status !== 'INVALID_REQUEST') {
+      console.log(`[BATCH ${merchant_id}] radius=500 returned 0, retrying radius=2000`);
+      data = await tryRadius(2000);
+    }
+
+    if (!data.results || data.results.length === 0) {
+      return res.status(404).json({ error: 'Place not found near coordinates' });
+    }
+
+    const top = data.results[0];
+    const result = {
+      placeId:          top.place_id,
+      name:             top.name,
+      formattedAddress: top.formatted_address || '',
+      rating:           top.rating ?? null,
+      totalReviews:     top.user_ratings_total ?? 0,
+    };
+    console.log(`[BATCH ${merchant_id}] Found place: ${result.name}`);
+    res.json(result);
+  } catch (e) {
+    console.error(`[BATCH ${merchant_id}] find-place error:`, e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Helper: split push notification into title + body ─────────────────────
+// Tries "? " boundary first (most hooks end with "?"), then ". ".
+function splitPush(str) {
+  if (!str) return { title: '', body: '' };
+  const qIdx = str.indexOf('?');
+  if (qIdx !== -1 && qIdx < str.length - 1) {
+    return { title: str.slice(0, qIdx + 1).trim(), body: str.slice(qIdx + 1).trim() };
+  }
+  const m = str.match(/^(.+?\.)\s+(.+)$/s);
+  if (m) return { title: m[1].trim(), body: m[2].trim() };
+  return { title: str.trim(), body: '' };
+}
+
+// ── Helper: split banner copy into headline + subtext ─────────────────────
+// Banner is stored as "headline\nsubtext"; falls back to whole string.
+function splitBanner(str) {
+  if (!str) return { headline: '', subtext: '' };
+  const nl = str.indexOf('\n');
+  if (nl !== -1) {
+    return { headline: str.slice(0, nl).trim(), subtext: str.slice(nl + 1).trim() };
+  }
+  return { headline: str.trim(), subtext: '' };
+}
+
+// ── Helper: transform flat body into the CleverTap-ready nested structure ──
+function structureMerchant(body, savedAt) {
+  const push   = splitPush(body.push_notification || '');
+  const banner = splitBanner(body.banner_copy || '');
+  return {
+    merchant_id: body.merchant_id,
+    name:        body.name,
+
+    profile: {
+      address:  body.address || '',
+      location: {
+        latitude:  String(body.latitude  ?? ''),
+        longitude: String(body.longitude ?? ''),
+      },
+    },
+
+    analysis: {
+      cohort:           body.cohort           || '',
+      cohort_tagline:   body.cohort_tagline   || '',
+      avg_rating:       body.avg_rating       ?? null,
+      total_reviews:    body.total_reviews    ?? null,
+      reviews_analyzed: body.reviews_analyzed ?? null,
+      summary:          body.analysis_summary || '',
+      key_insights:     Array.isArray(body.key_insights) ? body.key_insights : [],
+    },
+
+    content: {
+      whatsapp: { message: body.whatsapp_message || '' },
+      push:     { title: push.title, body: push.body },
+      banner:   { headline: banner.headline, subtext: banner.subtext },
+    },
+
+    meta: {
+      status:        body.status        || '',
+      error_message: body.error_message || null,
+      processed_at:  body.processed_at  || new Date().toISOString(),
+      saved_at:      savedAt            || new Date().toISOString(),
+    },
+  };
+}
+
+// POST /api/batch/save-result
+// Appends one merchant result to in-memory store + JSON file.
+app.post('/api/batch/save-result', (req, res) => {
+  const body = req.body || {};
+  const { merchant_id, sessionId, status } = body;
+
+  // Strip image base64 blobs, then build structured record.
+  const { whatsapp_image_base64, push_image_base64, banner_image_base64, ...textBody } = body;
+  const record = structureMerchant(textBody, new Date().toISOString());
+
+  batchResults.push(record);
+
+  if (sessionId) {
+    const filePath = path2.join(process.cwd(), `batch_results_${sessionId}.json`);
+    try {
+      let existing = [];
+      if (fs.existsSync(filePath)) {
+        existing = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      }
+      existing.push(record);
+      fs.writeFileSync(filePath, JSON.stringify(existing, null, 2));
+    } catch (e) {
+      console.warn(`[BATCH ${merchant_id}] Failed to write JSON file:`, e.message);
+    }
+  }
+
+  console.log(`[BATCH ${merchant_id}] Saved ✓ | Status: ${status}`);
+  res.json({ saved: true, total_saved: batchResults.length });
+});
+
+// GET /api/batch/export-data?sessionId=xxx
+// Returns all results for a given session from the JSON file.
+app.get('/api/batch/export-data', (req, res) => {
+  const { sessionId } = req.query;
+  if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+
+  const filePath = path2.join(process.cwd(), `batch_results_${sessionId}.json`);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: `No results file for session ${sessionId}` });
+  }
+
+  try {
+    const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const results = raw.map(({ whatsapp_image_base64, push_image_base64, banner_image_base64, ...rest }) => rest);
+    const successful = results.filter(r => r.status === 'success').length;
+    const failed     = results.filter(r => r.status === 'failed').length;
+    res.json({ results, total: results.length, successful, failed });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// CLEVERTAP LINKED CONTENT API
+// ════════════════════════════════════════════════════════════════════════════
+
+// GET /api/v1/merchants/:merchant_id
+// Returns the fully-structured merchant object for CleverTap Linked Content.
+// Usage: {{Linked.MerchantAPI.content.whatsapp.message}}
+//        {{Linked.MerchantAPI.content.push.title}}
+//        {{Linked.MerchantAPI.content.banner.headline}}
+app.get('/api/v1/merchants/:merchant_id', (req, res) => {
+  const { merchant_id } = req.params;
+  console.log(`[CLEVERTAP] Fetching data for merchant_id: ${merchant_id}`);
+
+  const merchant = batchResults.find(m => String(m.merchant_id) === String(merchant_id));
+  if (!merchant) {
+    return res.status(404).json({ error: 'Merchant not found' });
+  }
+
+  res.json(merchant);
+});
+
+// ════════════════════════════════════════════════════════════════════════════
 // SERVER
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -667,7 +916,8 @@ const PORT = 3000;
 app.listen(PORT, () => {
   console.log(`\n✅ Pi Commerce Merchant Analyzer running → http://localhost:${PORT}\n`);
   console.log('Pipeline:');
-  console.log('  POST /api/google/find-place    → Google Places Text Search');
-  console.log('  POST /api/google/reviews       → Google Places Details (max 5, sort: most_relevant | newest)');
-  console.log(`  POST /api/generate-copy        → ${OPENAI_MODEL}: classify + generate WhatsApp/Push/Banner\n`);
+  console.log('  POST /api/google/find-place          → Google Places Text Search');
+  console.log('  POST /api/google/reviews             → Google Places Details (max 5)');
+  console.log(`  POST /api/generate-copy              → ${OPENAI_MODEL}: classify + generate copy`);
+  console.log('  GET  /api/v1/merchants/:merchant_id  → CleverTap Linked Content\n');
 });

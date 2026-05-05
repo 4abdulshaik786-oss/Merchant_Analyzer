@@ -4,6 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Pi Commerce Merchant Analyzer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -372,12 +374,192 @@
   .retry-btn:hover { background: #fee2e2; }
 
   .hidden { display: none !important; }
+
+  /* ─── MODE TOGGLE ──────────────────────────────────────────────── */
+  .mode-toggle {
+    display: flex; gap: 6px;
+    margin-bottom: 1.5rem;
+  }
+  .mode-toggle button {
+    padding: 8px 20px; font-size: 13px; font-weight: 600;
+    border: none; border-radius: 20px; cursor: pointer;
+    font-family: inherit; transition: background 0.15s, color 0.15s;
+  }
+  .mode-toggle button.active { background: #1a1a1a; color: #fff; }
+  .mode-toggle button:not(.active) { background: #f0f0f0; color: #444; }
+
+  /* ─── BATCH INFO BANNER ────────────────────────────────────────── */
+  .batch-info-banner {
+    background: #e8f4fd; border: 1px solid #b3d9f5;
+    border-radius: 8px; padding: 10px 14px;
+    font-size: 12px; font-family: 'SF Mono', 'Fira Mono', monospace;
+    color: #1a5276; margin-bottom: 14px;
+  }
+
+  /* ─── CSV PREVIEW TABLE ────────────────────────────────────────── */
+  .batch-table-wrap { overflow-x: auto; margin-bottom: 10px; }
+  .batch-table {
+    width: 100%; border-collapse: collapse;
+    font-size: 13px;
+  }
+  .batch-table th {
+    background: #f5f5f3; font-weight: 600;
+    text-align: left; padding: 8px 12px;
+    border-bottom: 2px solid #e8e8e6;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #555;
+  }
+  .batch-table td {
+    padding: 8px 12px; border-bottom: 1px solid #f0f0ee;
+    vertical-align: middle;
+  }
+  .batch-table tr.processing { background: #fffbeb; }
+  .batch-table tr.done       { background: #f0fdf4; }
+  .batch-table tr.failed     { background: #fef2f2; }
+  .batch-row-status {
+    display: inline-block; padding: 2px 10px;
+    border-radius: 10px; font-size: 11px; font-weight: 600;
+  }
+  .batch-row-status.pending    { background: #f0f0f0; color: #666; }
+  .batch-row-status.processing { background: #fef3c7; color: #92400e; }
+  .batch-row-status.done       { background: #dcfce7; color: #166534; }
+  .batch-row-status.failed     { background: #fee2e2; color: #991b1b; }
+
+  .batch-count { font-size: 13px; color: #666; margin-bottom: 14px; }
+
+  /* ─── CONTROL BAR ──────────────────────────────────────────────── */
+  .batch-control-bar { margin-bottom: 14px; }
+  .batch-start-btn {
+    width: 100%; padding: 12px; font-size: 15px; font-weight: 700;
+    background: #1a1a1a; color: #fff; border: none; border-radius: 10px;
+    cursor: pointer; font-family: inherit; transition: background 0.15s;
+  }
+  .batch-start-btn:hover:not(:disabled) { background: #333; }
+  .batch-start-btn:disabled { background: #aaa; cursor: not-allowed; }
+  .batch-control-mid {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 8px;
+  }
+  .batch-ctrl-btn {
+    padding: 7px 18px; font-size: 13px; font-weight: 600;
+    border: 1px solid #ddd; border-radius: 8px;
+    background: #fff; cursor: pointer; font-family: inherit;
+    transition: background 0.15s;
+  }
+  .batch-ctrl-btn:hover { background: #f5f5f3; }
+  .batch-ctrl-btn.danger { border-color: #fca5a5; color: #991b1b; }
+  .batch-ctrl-btn.danger:hover { background: #fef2f2; }
+  .batch-queued-label { font-size: 13px; color: #666; margin-top: 6px; }
+
+  /* ─── PROGRESS BAR ─────────────────────────────────────────────── */
+  .batch-progress-wrap { margin-bottom: 14px; }
+  .batch-progress-track {
+    height: 8px; background: #e8e8e6; border-radius: 4px; overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .batch-progress-fill {
+    height: 100%; background: #003580; border-radius: 4px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+  .batch-progress-label { font-size: 12px; color: #666; }
+
+  /* ─── CURRENT MERCHANT PANEL ───────────────────────────────────── */
+  .batch-current-panel {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
+    margin-bottom: 14px;
+  }
+  @media (max-width: 600px) { .batch-current-panel { grid-template-columns: 1fr; } }
+  .batch-fields-col h3, .batch-steps-col h3 {
+    font-size: 12px; font-weight: 600; color: #555;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .batch-field-row { margin-bottom: 10px; }
+  .batch-field-row label {
+    font-size: 11px; font-weight: 500; color: #888;
+    display: block; margin-bottom: 3px;
+    text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .batch-field-row input {
+    width: 100%; padding: 7px 10px;
+    border: 1px solid #ddd; border-radius: 6px;
+    font-size: 13px; color: #1a1a1a;
+    background: #fafaf9; font-family: inherit;
+    pointer-events: none; outline: none;
+  }
+
+  /* ─── ACCORDION ─────────────────────────────────────────────────── */
+  .accordion-section { margin-top: 4px; }
+  .accordion-section h3 {
+    font-size: 12px; font-weight: 600; color: #555;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .accordion-item {
+    border: 1px solid #e8e8e6; border-radius: 10px;
+    margin-bottom: 6px; overflow: hidden;
+  }
+  .accordion-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px; cursor: pointer;
+    background: #fafaf9; font-size: 13px;
+    user-select: none; transition: background 0.15s;
+  }
+  .accordion-header:hover { background: #f5f5f3; }
+  .accordion-status-icon { font-size: 15px; flex-shrink: 0; }
+  .accordion-title { flex: 1; font-weight: 600; }
+  .accordion-meta  { font-size: 12px; color: #888; }
+  .accordion-chevron { font-size: 10px; color: #aaa; transition: transform 0.2s; }
+  .accordion-item.open .accordion-chevron { transform: rotate(180deg); }
+  .accordion-body {
+    display: none; padding: 14px;
+    border-top: 1px solid #e8e8e6; background: #fff;
+  }
+  .accordion-item.open .accordion-body { display: block; }
+  .accordion-error { font-size: 13px; color: #991b1b; }
+  .accordion-copy-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin-top: 10px;
+  }
+  @media (max-width: 600px) { .accordion-copy-grid { grid-template-columns: 1fr; } }
+  .accordion-copy-cell { border: 1px solid #e8e8e6; border-radius: 8px; overflow: hidden; }
+  .accordion-copy-label {
+    font-size: 11px; font-weight: 600; color: #666;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 6px 10px; background: #f5f5f3; border-bottom: 1px solid #e8e8e6;
+  }
+  .accordion-copy-body { padding: 10px; font-size: 12px; color: #333; white-space: pre-wrap; line-height: 1.5; }
+
+  /* ─── BATCH COMPLETE BANNER ─────────────────────────────────────── */
+  .batch-complete-banner {
+    background: #f0fdf4; border: 1px solid #86efac;
+    border-radius: 10px; padding: 16px 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 12px; margin-bottom: 14px;
+  }
+  .batch-complete-banner .bc-text { font-size: 14px; font-weight: 600; color: #166534; }
+  .batch-complete-banner .bc-sub  { font-size: 12px; color: #4ade80; margin-top: 2px; }
+  .pdf-btn {
+    padding: 9px 20px; font-size: 13px; font-weight: 600;
+    background: #003580; color: #fff; border: none; border-radius: 8px;
+    cursor: pointer; font-family: inherit;
+  }
+  .pdf-btn:hover { background: #00275e; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>Pi Commerce Merchant Analyzer</h1>
   <p class="subtitle">Find a business → fetch reviews → classify into a Pi Commerce angle → generate WhatsApp / Push / Banner copy.</p>
+
+  <!-- ─── MODE TOGGLE ─────────────────────────────────────────────── -->
+  <div class="mode-toggle">
+    <button id="modeManual" class="active" onclick="switchMode('manual')">Manual Entry</button>
+    <button id="modeBatch"  onclick="switchMode('batch')">Batch from CSV</button>
+  </div>
+
+  <!-- ─── MANUAL MODE wrapper ─────────────────────────────────────── -->
+  <div id="manualSection">
 
   <!-- ─── INPUT FORM ──────────────────────────────────────────────── -->
   <div class="card" id="formCard">
@@ -458,6 +640,100 @@
       </div>
     </div>
   </div>
+
+  </div><!-- end #manualSection -->
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- BATCH MODE SECTION                                              -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <div id="batchSection" class="hidden">
+
+    <!-- Info banner -->
+    <div class="batch-info-banner">
+      📄 Reading from: <strong>MerchantData.csv</strong> — located in project root
+    </div>
+
+    <!-- CSV preview card -->
+    <div class="card" id="batchPreviewCard">
+      <h2>CSV Preview</h2>
+      <div id="batchPreviewError" class="hidden" style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#991b1b;font-size:13px;margin-bottom:10px;"></div>
+      <div class="batch-table-wrap">
+        <table class="batch-table" id="batchTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Merchant ID</th>
+              <th>Business Name</th>
+              <th>Latitude</th>
+              <th>Longitude</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="batchTableBody"></tbody>
+        </table>
+      </div>
+      <div class="batch-count" id="batchCount">Loading…</div>
+    </div>
+
+    <!-- Control bar -->
+    <div class="card batch-control-bar">
+      <div id="batchStartRow">
+        <button class="batch-start-btn" id="batchStartBtn" onclick="startBatch()">Start Batch Analysis →</button>
+        <div class="batch-queued-label" id="batchQueuedLabel"></div>
+      </div>
+      <div id="batchRunningRow" class="hidden batch-control-mid">
+        <span id="batchRunningLabel" style="font-size:14px;font-weight:600;flex:1;">Processing…</span>
+        <button class="batch-ctrl-btn" id="batchPauseBtn" onclick="toggleBatchPause()">Pause</button>
+        <button class="batch-ctrl-btn danger" id="batchStopBtn" onclick="stopBatch()">Stop</button>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="batch-progress-wrap" id="batchProgressWrap" style="margin-top:12px;">
+        <div class="batch-progress-track"><div class="batch-progress-fill" id="batchProgressFill"></div></div>
+        <div class="batch-progress-label" id="batchProgressLabel">0 of 0 complete</div>
+      </div>
+    </div>
+
+    <!-- Current merchant panel -->
+    <div class="card hidden" id="batchCurrentCard">
+      <h2>Currently Processing</h2>
+      <div class="batch-current-panel">
+        <div class="batch-fields-col">
+          <h3>Merchant Details</h3>
+          <div class="batch-field-row"><label>Business Name</label><input id="batch-name" type="text" readonly /></div>
+          <div class="batch-field-row"><label>Merchant ID</label><input id="batch-id" type="text" readonly /></div>
+          <div class="batch-field-row"><label>Latitude</label><input id="batch-lat" type="text" readonly /></div>
+          <div class="batch-field-row"><label>Longitude</label><input id="batch-lng" type="text" readonly /></div>
+        </div>
+        <div class="batch-steps-col">
+          <h3>Pipeline Steps</h3>
+          <div class="steps" id="batchStepsContainer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live results (reuses same render cards) -->
+    <div id="batchResultsArea"></div>
+
+    <!-- Completed merchants accordion -->
+    <div class="card hidden" id="batchAccordionCard">
+      <h2>Completed Merchants</h2>
+      <div class="accordion-section" id="accordionList"></div>
+    </div>
+
+    <!-- Batch complete banner -->
+    <div class="hidden" id="batchCompleteBanner">
+      <div class="batch-complete-banner">
+        <div>
+          <div class="bc-text" id="bcText">Batch complete!</div>
+          <div class="bc-sub"  id="bcSub"></div>
+        </div>
+        <button class="pdf-btn" id="downloadPdfBtn">Download Excel Report →</button>
+      </div>
+    </div>
+
+  </div><!-- end #batchSection -->
+
 </div>
 
 <script>
@@ -851,6 +1127,563 @@
       runBtn.textContent = 'Analyze Merchant →';
     }
   });
+
+  // ═══════════════════════════════════════════════════════════════════
+  // BATCH MODE
+  // ═══════════════════════════════════════════════════════════════════
+
+  // ── Mode switching ────────────────────────────────────────────────
+  function switchMode(mode) {
+    const isManual = mode === 'manual';
+    $('manualSection').classList.toggle('hidden', !isManual);
+    $('batchSection').classList.toggle('hidden', isManual);
+    $('modeManual').classList.toggle('active', isManual);
+    $('modeBatch').classList.toggle('active', !isManual);
+    if (!isManual && batchMerchants.length === 0) loadBatchPreview();
+  }
+
+  // ── State ────────────────────────────────────────────────────────
+  let batchMerchants  = [];
+  let batchSessionId  = null;
+  let batchIsPaused   = false;
+  let batchIsStopped  = false;
+  let batchSuccess    = 0;
+  let batchFail       = 0;
+  let batchTimings    = [];
+  let batchAccordionData = []; // { merchant, copy, status, error }
+
+  // ── Load preview from CSV ────────────────────────────────────────
+  async function loadBatchPreview() {
+    const errDiv  = $('batchPreviewError');
+    const tbody   = $('batchTableBody');
+    const countEl = $('batchCount');
+    errDiv.classList.add('hidden');
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;color:#999;font-size:13px;">Loading…</td></tr>';
+    countEl.textContent = 'Loading…';
+
+    try {
+      const { merchants, total } = await apiGet('/api/batch/preview');
+      batchMerchants = merchants;
+      renderBatchTable(merchants);
+      countEl.textContent = `${total} merchant${total !== 1 ? 's' : ''} loaded from MerchantData.csv`;
+      $('batchQueuedLabel').textContent = `${total} merchants queued`;
+      $('batchStartBtn').disabled = total === 0;
+    } catch (e) {
+      errDiv.textContent = e.message || 'Failed to load MerchantData.csv';
+      errDiv.classList.remove('hidden');
+      tbody.innerHTML = '';
+      countEl.textContent = '';
+    }
+  }
+
+  async function apiGet(path) {
+    const r = await fetch(path);
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+    return data;
+  }
+
+  function renderBatchTable(merchants) {
+    const tbody = $('batchTableBody');
+    tbody.innerHTML = '';
+    merchants.forEach((m, i) => {
+      const tr = document.createElement('tr');
+      tr.id = `brow-${i}`;
+      tr.innerHTML = `
+        <td>${i + 1}</td>
+        <td>${escapeHtml(m.merchant_id ?? '—')}</td>
+        <td>${escapeHtml(m.name ?? '—')}</td>
+        <td>${escapeHtml(String(m.latitude ?? ''))}</td>
+        <td>${escapeHtml(String(m.longitude ?? ''))}</td>
+        <td><span class="batch-row-status pending" id="bstatus-${i}">Pending</span></td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function setBatchRowStatus(index, status, label) {
+    const row = $(`brow-${index}`);
+    const pill = $(`bstatus-${index}`);
+    if (!pill) return;
+    const labels = { pending:'Pending', processing:'Processing…', done:'✓ Done', failed:'✗ Failed' };
+    pill.className = `batch-row-status ${status}`;
+    pill.textContent = label || labels[status] || status;
+    if (row) row.className = status === 'processing' ? 'processing' : status === 'done' ? 'done' : status === 'failed' ? 'failed' : '';
+    if (status === 'processing') row?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // ── Progress bar helpers ─────────────────────────────────────────
+  function updateBatchProgress(done, total, success, fail, timings) {
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+    $('batchProgressFill').style.width = pct + '%';
+    let eta = '';
+    if (timings.length > 0 && done < total) {
+      const avg = timings.reduce((a, b) => a + b, 0) / timings.length;
+      const rem = Math.round((avg * (total - done)) / 60000);
+      eta = ` · ~${rem} min remaining`;
+    }
+    $('batchProgressLabel').textContent =
+      `${done} of ${total} complete · ${fail} failed${eta}`;
+    $('batchRunningLabel').textContent =
+      `Processing ${done + 1} of ${total}…`;
+  }
+
+  // ── Batch pipeline steps renderer ────────────────────────────────
+  const BATCH_STEPS = [
+    'Loading merchant from CSV…',
+    'Building search query from coordinates…',
+    'Finding place via Google Places API…',
+    'Fetching reviews (max 5)…',
+    'Classifying merchant & generating copy…',
+    'Capturing creatives & saving to report…',
+  ];
+
+  function renderBatchSteps() {
+    const c = $('batchStepsContainer');
+    c.innerHTML = '';
+    BATCH_STEPS.forEach((label, i) => {
+      const div = document.createElement('div');
+      div.className = 'step';
+      div.id = `bstep-${i}`;
+      div.innerHTML = `<span class="step-icon" id="bstep-icon-${i}">○</span><span class="step-label" id="bstep-lbl-${i}">${label}</span>`;
+      c.appendChild(div);
+    });
+  }
+
+  function setBatchStep(index, state, sublabel) {
+    const icon = $(`bstep-icon-${index}`);
+    const lbl  = $(`bstep-lbl-${index}`);
+    if (!icon) return;
+    const ICONS = { pending:'○', active:'⟳', done:'✓', error:'✗' };
+    const CLASSES = { pending:'', active:' active', done:' done', error:' error' };
+    icon.textContent = ICONS[state] || '○';
+    icon.className = 'step-icon' + (CLASSES[state] || '');
+    if (sublabel && lbl) lbl.innerHTML = `${BATCH_STEPS[index]} <span class="step-sub">${escapeHtml(sublabel)}</span>`;
+  }
+
+  // ── Typewriter fill ───────────────────────────────────────────────
+  async function typewriterFill(fieldId, text) {
+    const el = $(fieldId);
+    if (!el) return;
+    el.value = '';
+    for (const char of String(text ?? '')) {
+      el.value += char;
+      await new Promise(r => setTimeout(r, 30));
+    }
+  }
+
+  // ── Capture card as image ─────────────────────────────────────────
+  async function captureCard(el) {
+    if (!el || typeof html2canvas === 'undefined') return null;
+    try {
+      const canvas = await html2canvas(el, {
+        useCORS: true, allowTaint: true, scale: 2, backgroundColor: '#ffffff',
+      });
+      return canvas.toDataURL('image/png');
+    } catch { return null; }
+  }
+
+  // ── Render batch accordion item ───────────────────────────────────
+  function addAccordionItem(merchant, copyData, status, error) {
+    batchAccordionData.push({ merchant, copyData, status, error });
+    const card = $('batchAccordionCard');
+    card.classList.remove('hidden');
+    const list = $('accordionList');
+
+    const idx = batchAccordionData.length - 1;
+    const icon = status === 'done' ? '✅' : '❌';
+    const angleMeta = copyData ? (ANGLES[copyData.classification?.angle] || {}) : {};
+    const angleLabel = angleMeta.name || '—';
+
+    const item = document.createElement('div');
+    item.className = 'accordion-item open';
+    item.id = `acc-${idx}`;
+    item.innerHTML = `
+      <div class="accordion-header" onclick="toggleAccordion(${idx})">
+        <span class="accordion-status-icon">${icon}</span>
+        <span class="accordion-title">${escapeHtml(merchant.name)}</span>
+        <span class="accordion-meta">${escapeHtml(String(merchant.merchant_id))} · ${status === 'done' ? angleLabel : 'Failed'}</span>
+        <span class="accordion-chevron">▼</span>
+      </div>
+      <div class="accordion-body">
+        ${status === 'failed'
+          ? `<div class="accordion-error">✗ ${escapeHtml(error || 'Unknown error')}</div>`
+          : `<div class="accordion-copy-grid">
+              <div class="accordion-copy-cell">
+                <div class="accordion-copy-label">WhatsApp</div>
+                <div class="accordion-copy-body">${escapeHtml(copyData?.copy?.whatsapp || '—')}</div>
+              </div>
+              <div class="accordion-copy-cell">
+                <div class="accordion-copy-label">Push</div>
+                <div class="accordion-copy-body">${escapeHtml(copyData?.copy?.push || '—')}</div>
+              </div>
+              <div class="accordion-copy-cell">
+                <div class="accordion-copy-label">Banner</div>
+                <div class="accordion-copy-body">${escapeHtml((copyData?.copy?.banner?.text || '') + (copyData?.copy?.banner?.sub ? '\n' + copyData.copy.banner.sub : ''))}</div>
+              </div>
+            </div>`
+        }
+      </div>`;
+    // Close all others, open new
+    list.querySelectorAll('.accordion-item').forEach(el => el.classList.remove('open'));
+    list.appendChild(item);
+    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function toggleAccordion(idx) {
+    const item = $(`acc-${idx}`);
+    if (item) item.classList.toggle('open');
+  }
+
+  // ── Process one merchant ─────────────────────────────────────────
+  async function processBatchMerchant(merchant, index) {
+    const startTime = Date.now();
+    $('batchCurrentCard').classList.remove('hidden');
+    renderBatchSteps();
+
+    // Steps 0 & 1 — typewriter fill (instant UI)
+    setBatchStep(0, 'active');
+    await typewriterFill('batch-name', merchant.name);
+    await typewriterFill('batch-id', merchant.merchant_id);
+    await typewriterFill('batch-lat', merchant.latitude);
+    await typewriterFill('batch-lng', merchant.longitude);
+    setBatchStep(0, 'done');
+    setBatchStep(1, 'done');
+
+    let place, reviews, placeMetadata, out;
+
+    // Step 2 — find place by coordinates
+    setBatchStep(2, 'active');
+    place = await apiPost('/api/batch/find-place-by-coordinates', {
+      name: merchant.name,
+      latitude: merchant.latitude,
+      longitude: merchant.longitude,
+      merchant_id: merchant.merchant_id,
+    });
+    setBatchStep(2, 'done', `Found: ${place.name}`);
+
+    // Step 3 — fetch reviews
+    setBatchStep(3, 'active');
+    const reviewsResult = await apiPost('/api/google/reviews', {
+      placeId: place.placeId,
+      sortOrder: 'most_relevant',
+      placeMetadata: {
+        name: place.name,
+        formattedAddress: place.formattedAddress,
+        rating: place.rating,
+        totalReviews: place.totalReviews,
+      },
+    });
+    reviews = reviewsResult.reviews || [];
+    placeMetadata = reviewsResult.placeMetadata || place;
+    setBatchStep(3, 'done', `${reviews.length} reviews`);
+
+    // Step 4 — classify + generate copy
+    setBatchStep(4, 'active');
+    out = await apiPost('/api/generate-copy', { reviews, placeMetadata });
+    const angleLabel = (ANGLES[out.classification?.angle] || { name: out.classification?.angle }).name;
+    setBatchStep(4, 'done', `Angle: ${angleLabel}`);
+
+    // Render results in the dedicated batch results area using cloned result cards
+    const batchResultsArea = $('batchResultsArea');
+    batchResultsArea.innerHTML = '';
+    const tmpWrap = document.createElement('div');
+    tmpWrap.id = 'batchLiveResult';
+
+    // Place card
+    const pcDiv = document.createElement('div');
+    pcDiv.className = 'place-card';
+    pcDiv.innerHTML = `
+      <div class="pname">${escapeHtml(place.name)}</div>
+      <div class="paddr">${escapeHtml(place.formattedAddress)}</div>
+      <div class="pmeta">
+        <span>★ <strong>${place.rating ?? '—'}</strong></span>
+        <span><strong>${place.totalReviews ?? 0}</strong> total reviews on Google</span>
+      </div>`;
+    tmpWrap.appendChild(pcDiv);
+
+    // Results summary card
+    const angleMeta = ANGLES[out.classification.angle] || { name: out.classification.angle, color: '#666' };
+    const summaryCard = document.createElement('div');
+    summaryCard.className = 'card';
+    summaryCard.innerHTML = `
+      <div class="results-header">
+        <div class="merchant-name">${escapeHtml(place.name)}</div>
+        <div class="merchant-addr">${escapeHtml(place.formattedAddress)}</div>
+        <div style="margin:6px 0;">
+          <span class="chip">★ ${place.rating ?? '—'}</span>
+          <span class="chip">${place.totalReviews ?? 0} reviews</span>
+          <span class="chip primary">Angle: ${angleMeta.name}</span>
+        </div>
+      </div>
+      <div class="summary-box">${escapeHtml(out.classification.summary || '')}</div>`;
+    tmpWrap.appendChild(summaryCard);
+
+    // Channel copy preview (simplified inline, all 3 channels)
+    const copyCard = document.createElement('div');
+    copyCard.className = 'card';
+    copyCard.id = 'batchCopyCard';
+    const banner = out.copy?.banner || {};
+    copyCard.innerHTML = `
+      <h2>Channel Creative Preview</h2>
+      <div class="accordion-copy-grid" style="margin-top:10px;">
+        <div class="accordion-copy-cell" id="batch-wa-cell">
+          <div class="accordion-copy-label">WhatsApp</div>
+          <div class="accordion-copy-body">${escapeHtml(out.copy?.whatsapp || '—')}</div>
+        </div>
+        <div class="accordion-copy-cell" id="batch-push-cell">
+          <div class="accordion-copy-label">Push</div>
+          <div class="accordion-copy-body">${escapeHtml(out.copy?.push || '—')}</div>
+        </div>
+        <div class="accordion-copy-cell" id="batch-banner-cell">
+          <div class="accordion-copy-label">Banner</div>
+          <div class="accordion-copy-body">${escapeHtml((banner.text || '') + (banner.sub ? '\n' + banner.sub : ''))}</div>
+        </div>
+      </div>`;
+    tmpWrap.appendChild(copyCard);
+    batchResultsArea.appendChild(tmpWrap);
+    tmpWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Step 5 — save text results
+    setBatchStep(5, 'active');
+    const bannerObj = out.copy?.banner || {};
+    const bannerText = (bannerObj.text || '') + (bannerObj.sub ? '\n' + bannerObj.sub : '');
+    await apiPost('/api/batch/save-result', {
+      sessionId: batchSessionId,
+      merchant_id: merchant.merchant_id,
+      name: place.name,
+      address: place.formattedAddress,
+      latitude: merchant.latitude,
+      longitude: merchant.longitude,
+      cohort: out.classification.angle,
+      cohort_tagline: angleMeta.tag || '',
+      avg_rating: place.rating,
+      total_reviews: place.totalReviews,
+      reviews_analyzed: reviews.length,
+      analysis_summary: out.classification?.summary || '',
+      key_insights: out.classification?.issues || [],
+      whatsapp_message: out.copy?.whatsapp || '',
+      push_notification: out.copy?.push || '',
+      banner_copy: bannerText,
+      status: 'success',
+      error_message: null,
+      processed_at: new Date().toISOString(),
+    });
+    setBatchStep(5, 'done', 'Saved to report');
+
+    batchTimings.push(Date.now() - startTime);
+    batchSuccess++;
+    console.log(`[BATCH ${merchant.merchant_id}] Done ✓`);
+    addAccordionItem(merchant, out, 'done', null);
+    return out;
+  }
+
+  // ── Pause / Stop controls ─────────────────────────────────────────
+  function toggleBatchPause() {
+    batchIsPaused = !batchIsPaused;
+    $('batchPauseBtn').textContent = batchIsPaused ? 'Resume' : 'Pause';
+  }
+  function stopBatch() {
+    batchIsStopped = true;
+    $('batchStopBtn').textContent = 'Stopping…';
+    $('batchStopBtn').disabled = true;
+  }
+
+  // ── Excel export ──────────────────────────────────────────────────
+  async function compileExcelAndDownload() {
+    if (typeof XLSX === 'undefined') {
+      alert('Excel library not loaded. Please refresh the page and try again.');
+      return;
+    }
+
+    const btn = $('downloadPdfBtn');
+    btn.textContent = 'Preparing Excel…';
+    btn.disabled = true;
+
+    try {
+      const results = batchAccordionData;
+      if (!results || results.length === 0) {
+        btn.textContent = 'No results to export';
+        btn.disabled = false;
+        return;
+      }
+
+      const total      = results.length;
+      const successful = results.filter(r => r.status === 'done').length;
+      const failed     = results.filter(r => r.status === 'failed').length;
+      const dateStr    = new Date().toISOString().slice(0, 10);
+
+      console.log(`[EXPORT] Building Excel with ${total} merchants…`);
+
+      // ── Sheet 1 — Merchant Results ─────────────────────────────────
+      const headers = [
+        'Merchant ID', 'Business Name', 'Address', 'Latitude', 'Longitude',
+        'Google Rating', 'Total Reviews', 'Reviews Analyzed',
+        'Pi Commerce Angle', 'Angle Tagline', 'Analysis Summary',
+        'Key Insight 1', 'Key Insight 2', 'Key Insight 3',
+        'WhatsApp Message', 'Push Notification', 'Banner Copy',
+        'Status', 'Error Message', 'Processed At',
+      ];
+
+      const rows = results.map(r => {
+        const m   = r.merchant;
+        const cd  = r.copyData;
+        const cls = cd?.classification || {};
+        const cp  = cd?.copy || {};
+        const bannerObj = cp.banner || {};
+        const bannerStr = (bannerObj.text || '') + (bannerObj.sub ? '\n' + bannerObj.sub : '');
+        const insights  = cls.issues || [];
+        return [
+          m.merchant_id                                 || '',
+          r.status === 'done' ? (cd?.placeMetadata?.name || m.name) : m.name || '',
+          cd?.placeMetadata?.formattedAddress           || '',
+          m.latitude                                    || '',
+          m.longitude                                   || '',
+          cd?.placeMetadata?.rating                     ?? '',
+          cd?.placeMetadata?.totalReviews               ?? '',
+          '',
+          cls.angle                                     || '',
+          (ANGLES[cls.angle] || {}).tag                 || '',
+          cls.summary                                   || '',
+          insights[0]                                   || '',
+          insights[1]                                   || '',
+          insights[2]                                   || '',
+          cp.whatsapp                                   || '',
+          cp.push                                       || '',
+          bannerStr,
+          r.status === 'done' ? 'Success' : 'Failed',
+          r.error                                       || '',
+          new Date().toISOString(),
+        ];
+      });
+
+      const ws1 = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+      ws1['!cols'] = [
+        { wch: 15 }, { wch: 30 }, { wch: 40 }, { wch: 12 }, { wch: 12 },
+        { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 30 },
+        { wch: 50 }, { wch: 35 }, { wch: 35 }, { wch: 35 },
+        { wch: 60 }, { wch: 40 }, { wch: 40 },
+        { wch: 12 }, { wch: 30 }, { wch: 20 },
+      ];
+
+      // ── Sheet 2 — Summary ──────────────────────────────────────────
+      const angleCounts = {};
+      results.forEach(r => {
+        if (r.status === 'done' && r.copyData?.classification?.angle) {
+          const a = r.copyData.classification.angle;
+          angleCounts[a] = (angleCounts[a] || 0) + 1;
+        }
+      });
+      const angleRows = Object.entries(angleCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([angle, count]) => [
+          (ANGLES[angle] || { name: angle }).name,
+          count,
+          `${Math.round((count / (successful || 1)) * 100)}%`,
+        ]);
+
+      const summaryData = [
+        ['Pi Commerce Batch Analysis Report'],
+        [`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`],
+        [],
+        ['BATCH STATISTICS'],
+        ['Total Merchants Processed', total],
+        ['Successful', successful],
+        ['Failed', failed],
+        ['Success Rate', `${Math.round((successful / (total || 1)) * 100)}%`],
+        [],
+        ['ANGLE DISTRIBUTION'],
+        ['Angle', 'Count', 'Percentage'],
+        ...angleRows,
+      ];
+
+      const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
+      ws2['!cols'] = [{ wch: 35 }, { wch: 15 }, { wch: 15 }];
+
+      // ── Build workbook & download ────────────────────────────────────
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws1, 'Merchant Results');
+      XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
+
+      const filename = `Pi_Commerce_Report_${dateStr}.xlsx`;
+      XLSX.writeFile(wb, filename);
+      console.log(`[EXPORT] Excel ready → downloading ${filename}`);
+
+      btn.textContent = '✓ Downloaded';
+    } catch (e) {
+      console.error('[EXPORT] Failed:', e);
+      btn.textContent = 'Export Failed — Retry';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Main batch runner ────────────────────────────────────────────
+  async function startBatch() {
+    if (batchMerchants.length === 0) return;
+    batchSessionId  = Date.now();
+    batchIsPaused   = false;
+    batchIsStopped  = false;
+    batchSuccess    = 0;
+    batchFail       = 0;
+    batchTimings    = [];
+    batchAccordionData = [];
+
+    $('batchStartRow').classList.add('hidden');
+    $('batchRunningRow').classList.remove('hidden');
+    $('batchAccordionCard').classList.add('hidden');
+    $('accordionList').innerHTML = '';
+    $('batchCompleteBanner').classList.add('hidden');
+    $('batchResultsArea').innerHTML = '';
+    renderBatchTable(batchMerchants);
+
+    for (let i = 0; i < batchMerchants.length; i++) {
+      if (batchIsStopped) break;
+      while (batchIsPaused) await new Promise(r => setTimeout(r, 400));
+
+      updateBatchProgress(i, batchMerchants.length, batchSuccess, batchFail, batchTimings);
+      setBatchRowStatus(i, 'processing');
+
+      try {
+        const result = await processBatchMerchant(batchMerchants[i], i);
+        setBatchRowStatus(i, 'done');
+      } catch (err) {
+        batchFail++;
+        console.error(`[BATCH ${batchMerchants[i].merchant_id}] Failed:`, err.message);
+        setBatchRowStatus(i, 'failed');
+        setBatchStep && setBatchStep(Math.min(5, BATCH_STEPS.length - 1), 'error', err.message);
+        addAccordionItem(batchMerchants[i], null, 'failed', err.message);
+        try {
+          await apiPost('/api/batch/save-result', {
+            sessionId: batchSessionId,
+            merchant_id: batchMerchants[i].merchant_id,
+            name: batchMerchants[i].name,
+            status: 'failed',
+            error_message: err.message,
+          });
+        } catch {}
+      }
+
+      updateBatchProgress(i + 1, batchMerchants.length, batchSuccess, batchFail, batchTimings);
+      if (i < batchMerchants.length - 1 && !batchIsStopped) {
+        await new Promise(r => setTimeout(r, 1500));
+      }
+    }
+
+    // Done
+    $('batchRunningRow').classList.add('hidden');
+    $('batchStartRow').classList.remove('hidden');
+    $('batchStartBtn').textContent = 'Run Again →';
+    $('batchCurrentCard').classList.add('hidden');
+
+    const completeBanner = $('batchCompleteBanner');
+    completeBanner.classList.remove('hidden');
+    $('bcText').textContent = `Batch complete — ${batchSuccess} succeeded, ${batchFail} failed`;
+    $('bcSub').textContent  = `Session ID: ${batchSessionId}`;
+    completeBanner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    $('downloadPdfBtn').onclick = () => compileExcelAndDownload();
+    setTimeout(() => compileExcelAndDownload(), 3000);
+  }
 </script>
 </body>
 </html>
