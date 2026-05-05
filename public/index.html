@@ -305,9 +305,16 @@
     gap: 16px; flex-wrap: wrap;
     box-shadow: 0 4px 14px rgba(0, 41, 112, 0.18);
   }
+  .banner-text {
+    flex: 1; min-width: 200px;
+    display: flex; flex-direction: column; gap: 2px;
+  }
   .banner-line {
     font-size: 15px; font-weight: 600; line-height: 1.35;
-    flex: 1; min-width: 200px;
+  }
+  .banner-sub {
+    font-size: 13px; font-weight: 400; line-height: 1.35;
+    opacity: 0.92;
   }
   .banner-cta {
     background: #fff; color: #002970;
@@ -755,11 +762,18 @@
         </div>`;
       target.appendChild(wrap);
     } else if (channel === 'banner') {
-      const { line, cta } = splitBannerForDisplay(currentCopy.banner || '');
+      const banner = currentCopy.banner || {};
+      const headline = banner.text || '';
+      const subtext = banner.sub || '';
+      const cta = 'Try Now';
+
       const wrap = document.createElement('div');
       wrap.className = 'banner-preview';
       wrap.innerHTML = `
-        <div class="banner-line">${escapeHtml(line)}</div>
+        <div class="banner-text">
+          <div class="banner-line">${escapeHtml(headline)}</div>
+          ${subtext ? `<div class="banner-sub">${escapeHtml(subtext)}</div>` : ''}
+        </div>
         <button type="button" class="banner-cta" tabindex="-1">${escapeHtml(cta)}</button>`;
       target.appendChild(wrap);
     }
@@ -781,14 +795,6 @@
     const m = str.match(/^(.+?\.)\s+(.*)$/);
     if (m) return { title: m[1].trim(), body: m[2].trim() };
     return { title: str, body: '' };
-  }
-
-  // Banner uses "Try Now." as a fixed trailing CTA. Strip it from the
-  // line and put it in the dedicated CTA button.
-  function splitBannerForDisplay(str) {
-    if (!str) return { line: '', cta: 'Try Now' };
-    const trimmed = str.replace(/\s*Try Now\.\s*$/i, '').trim();
-    return { line: trimmed, cta: 'Try Now' };
   }
 
   function currentTimeShort() {

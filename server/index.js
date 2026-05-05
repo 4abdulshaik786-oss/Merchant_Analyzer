@@ -409,7 +409,8 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
 
   let whatsappHook;
   let pushBody;
-  let bannerBody;
+  let bannerText;
+  let bannerSub;
   let bullet1;
 
   switch (angle) {
@@ -419,35 +420,44 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
         ? `Repeated ${issuePhrase} complaints are pushing customers away.`
         : `${capitalize(issuePhrase)} complaints are pushing customers away.`;
 
-      // Push/Banner: only mention 1 issue (per locked decision)
+      // Push: shortened, single issue
       pushBody = isSevere
-        ? `Repeated ${issueWord} complaints pushing customers away? Pi Commerce can bring them back. Try Now.`
-        : `${capitalize(issueWord)} complaints pushing customers away? Pi Commerce can bring them back. Try Now.`;
-      bannerBody = pushBody;
+        ? `Repeated ${issueWord} complaints losing customers? Pi Commerce wins them back. Try Now.`
+        : `${capitalize(issueWord)} complaints losing customers? Pi Commerce wins them back. Try Now.`;
+
+      // Banner: tighter, split into headline + subtext
+      bannerText = isSevere
+        ? `Repeated ${issueWord} complaints?`
+        : `${capitalize(issueWord)} complaints losing customers?`;
+      bannerSub = `Pi Commerce wins your customers back.`;
+
       bullet1 = 'Wins back lost customers';
       break;
     }
 
     case 'Decline': {
       whatsappHook = 'Customers who once loved you have stopped coming.';
-      pushBody = 'Customers stopped coming? Pi Commerce can bring them back. Try Now.';
-      bannerBody = pushBody;
+      pushBody = 'Lost customers stopped coming? Pi Commerce wins them back. Try Now.';
+      bannerText = 'Customers stopped coming?';
+      bannerSub = 'Pi Commerce wins them back.';
       bullet1 = 'Wins back lost customers';
       break;
     }
 
     case 'LowTraffic': {
       whatsappHook = 'Seeing low footfalls at your place?';
-      pushBody = 'Low footfalls at your place? Pi Commerce gets you more traffic. Try Now.';
-      bannerBody = 'Low footfalls? Pi Commerce gets you more traffic. Try Now.';
+      pushBody = 'Low footfalls? Pi Commerce gets you more traffic. Try Now.';
+      bannerText = 'Low footfalls?';
+      bannerSub = 'Pi Commerce gets you more traffic.';
       bullet1 = 'Gets you more traffic';
       break;
     }
 
     case 'Neutral': {
       whatsappHook = 'Customers come once and forget you.';
-      pushBody = 'Customers visit once and forget you? Pi Commerce can bring them back. Try Now.';
-      bannerBody = pushBody;
+      pushBody = 'Customers visit once and forget you? Pi Commerce brings them back. Try Now.';
+      bannerText = 'Customers visit once?';
+      bannerSub = 'Pi Commerce brings them back.';
       bullet1 = 'Brings customers back for repeat visits';
       break;
     }
@@ -457,9 +467,12 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
         ? `You're rated ${ratingStr} — but hundreds nearby don't know you.`
         : `Loved by customers — but hundreds nearby don't know you.`;
       pushBody = ratingHigh
-        ? `Rated ${ratingStr}? Hundreds nearby don't know you. Pi Commerce gets you new customers. Try Now.`
-        : `Loved by customers? Hundreds nearby don't know you. Pi Commerce gets you new customers. Try Now.`;
-      bannerBody = pushBody;
+        ? `Rated ${ratingStr} but Hundreds nearby don't know you? Pi Commerce gets new ones. Try Now.`
+        : `Loved but unknown nearby? Pi Commerce gets new customers. Try Now.`;
+      bannerText = ratingHigh
+        ? `Rated ${ratingStr}, but unknown nearby?`
+        : `Loved but unknown nearby?`;
+      bannerSub = `Pi Commerce gets you new customers.`;
       bullet1 = 'Gets you hundreds of new customers';
       break;
     }
@@ -469,9 +482,12 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
         ? `You're rated ${ratingStr} — but competition is catching up.`
         : `Loved by customers — but competition is catching up.`;
       pushBody = ratingHigh
-        ? `Rated ${ratingStr}? Competition is catching up. Pi Commerce gets you new customers. Try Now.`
-        : `Loved by customers? Competition is catching up. Pi Commerce gets you new customers. Try Now.`;
-      bannerBody = pushBody;
+        ? `Rated ${ratingStr} & Competition catching up? Pi Commerce gets new customers. Try Now.`
+        : `Competition catching up? Pi Commerce gets new customers. Try Now.`;
+      bannerText = ratingHigh
+        ? `Rated ${ratingStr}, competition catching up?`
+        : `Competition catching up?`;
+      bannerSub = `Pi Commerce gets you new customers.`;
       bullet1 = 'Gets you new customers';
       break;
     }
@@ -482,9 +498,12 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
         ? `You're rated ${ratingStr} — but happy customers rarely return on their own.`
         : `Loved by customers — but few return on their own.`;
       pushBody = ratingHigh
-        ? `Rated ${ratingStr}? Happy customers rarely return. Pi Commerce can bring them back. Try Now.`
-        : `Happy customers rarely return on their own. Pi Commerce can bring them back. Try Now.`;
-      bannerBody = pushBody;
+        ? `Rated ${ratingStr} but happy customers rarely return? Pi Commerce brings them back. Try Now.`
+        : `Happy customers rarely return? Pi Commerce brings them back. Try Now.`;
+      bannerText = ratingHigh
+        ? `Rated ${ratingStr}, but few return?`
+        : `Happy customers rarely return?`;
+      bannerSub = `Pi Commerce brings them back.`;
       bullet1 = 'Brings happy customers back';
       break;
     }
@@ -502,9 +521,13 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
   return {
     whatsapp,
     push: pushBody,
-    banner: bannerBody,
+    banner: {
+      text: bannerText,
+      sub: bannerSub,
+    },
   };
 }
+
 
 function capitalize(s) {
   if (!s) return s;
