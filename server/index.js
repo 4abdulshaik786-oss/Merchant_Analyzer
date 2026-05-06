@@ -1,10 +1,46 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 require('dotenv').config();
 
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
+const Database = require('better-sqlite3');
+const express  = require('express');
+const cors     = require('cors');
+const path     = require('path');
+const fs       = require('fs');
+const fetch    = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
+
+// ─── SQLite setup ─────────────────────────────────────────────────────────────
+const dbDir = path.join(__dirname, 'data');
+if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir);
+
+const db = new Database(path.join(dbDir, 'merchants.db'));
+
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS merchants (
+    merchant_id      TEXT PRIMARY KEY,
+    name             TEXT,
+    address          TEXT,
+    latitude         REAL,
+    longitude        REAL,
+    cohort           TEXT,
+    cohort_tagline   TEXT,
+    analysis_summary TEXT,
+    key_insights     TEXT,
+    whatsapp_message TEXT,
+    push_notification TEXT,
+    banner_copy      TEXT,
+    avg_rating       REAL,
+    total_reviews    INTEGER,
+    reviews_analyzed INTEGER,
+    status           TEXT,
+    error_message    TEXT,
+    session_id       TEXT,
+    processed_at     TEXT
+  )
+`).run();
+
+console.log('[SQLite] Database ready →', path.join(dbDir, 'merchants.db'));
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
@@ -661,12 +697,7 @@ app.post('/api/generate-copy', async (req, res) => {
 // BATCH ENDPOINTS
 // ════════════════════════════════════════════════════════════════════════════
 
-const fs   = require('fs');
-const path2 = require('path');
 const { parse } = require('csv-parse/sync');
-
-// In-memory store for results of the current/last batch run.
-let batchResults = [];
 
 // ── Column-name aliases → canonical field name ────────────────────────────
 function normalizeColumns(record) {
@@ -688,7 +719,7 @@ function normalizeColumns(record) {
 // GET /api/batch/preview
 // Reads MerchantData.csv from project root and returns normalized rows.
 app.get('/api/batch/preview', (req, res) => {
-  const csvPath = path2.join(process.cwd(), 'MerchantData.csv');
+  const csvPath = path.join(process.cwd(), 'MerchantData.csv');
   if (!fs.existsSync(csvPath)) {
     return res.status(404).json({ error: 'MerchantData.csv not found in project root' });
   }
@@ -834,54 +865,94 @@ function structureMerchant(body, savedAt) {
 }
 
 // POST /api/batch/save-result
-// Appends one merchant result to in-memory store + JSON file.
-app.post('/api/batch/save-result', (req, res) => {
-  const body = req.body || {};
-  const { merchant_id, sessionId, status } = body;
+app.post('/api/batch/save-result', async (req, res) => {
+  try {
+    const data = req.body || {};
+    const { whatsapp_image_base64, push_image_base64, banner_image_base64, ...textData } = data;
 
-  // Strip image base64 blobs, then build structured record.
-  const { whatsapp_image_base64, push_image_base64, banner_image_base64, ...textBody } = body;
-  const record = structureMerchant(textBody, new Date().toISOString());
+    db.prepare(`
+      INSERT INTO merchants (
+        merchant_id, name, address, latitude, longitude,
+        cohort, cohort_tagline, analysis_summary,
+        key_insights, whatsapp_message, push_notification,
+        banner_copy, avg_rating, total_reviews,
+        reviews_analyzed, status, error_message,
+        session_id, processed_at
+      )
+      VALUES (
+        @merchant_id, @name, @address, @latitude, @longitude,
+        @cohort, @cohort_tagline, @analysis_summary,
+        @key_insights, @whatsapp_message, @push_notification,
+        @banner_copy, @avg_rating, @total_reviews,
+        @reviews_analyzed, @status, @error_message,
+        @session_id, @processed_at
+      )
+      ON CONFLICT(merchant_id) DO UPDATE SET
+        name=excluded.name,
+        address=excluded.address,
+        latitude=excluded.latitude,
+        longitude=excluded.longitude,
+        cohort=excluded.cohort,
+        cohort_tagline=excluded.cohort_tagline,
+        analysis_summary=excluded.analysis_summary,
+        key_insights=excluded.key_insights,
+        whatsapp_message=excluded.whatsapp_message,
+        push_notification=excluded.push_notification,
+        banner_copy=excluded.banner_copy,
+        avg_rating=excluded.avg_rating,
+        total_reviews=excluded.total_reviews,
+        reviews_analyzed=excluded.reviews_analyzed,
+        status=excluded.status,
+        error_message=excluded.error_message,
+        session_id=excluded.session_id,
+        processed_at=excluded.processed_at
+    `).run({
+      merchant_id:      String(textData.merchant_id),
+      name:             textData.name             || null,
+      address:          textData.address          || null,
+      latitude:         textData.latitude         ?? null,
+      longitude:        textData.longitude        ?? null,
+      cohort:           textData.cohort           || null,
+      cohort_tagline:   textData.cohort_tagline   || null,
+      analysis_summary: textData.analysis_summary || null,
+      key_insights:     JSON.stringify(textData.key_insights || []),
+      whatsapp_message: textData.whatsapp_message  || null,
+      push_notification:textData.push_notification || null,
+      banner_copy:      textData.banner_copy       || null,
+      avg_rating:       textData.avg_rating        ?? null,
+      total_reviews:    textData.total_reviews     ?? null,
+      reviews_analyzed: textData.reviews_analyzed  ?? null,
+      status:           textData.status            || 'pending',
+      error_message:    textData.error_message     || null,
+      session_id:       String(textData.session_id || ''),
+      processed_at:     new Date().toISOString(),
+    });
 
-  batchResults.push(record);
-
-  if (sessionId) {
-    const filePath = path2.join(process.cwd(), `batch_results_${sessionId}.json`);
-    try {
-      let existing = [];
-      if (fs.existsSync(filePath)) {
-        existing = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      }
-      existing.push(record);
-      fs.writeFileSync(filePath, JSON.stringify(existing, null, 2));
-    } catch (e) {
-      console.warn(`[BATCH ${merchant_id}] Failed to write JSON file:`, e.message);
-    }
+    const total = db.prepare('SELECT COUNT(*) as count FROM merchants').get().count;
+    console.log(`[BATCH ${textData.merchant_id}] Saved to SQLite | Total: ${total}`);
+    res.json({ saved: true, total_saved: total });
+  } catch (err) {
+    console.error('[SQLite] Save error:', err.message);
+    res.status(500).json({ error: err.message });
   }
-
-  console.log(`[BATCH ${merchant_id}] Saved ✓ | Status: ${status}`);
-  res.json({ saved: true, total_saved: batchResults.length });
 });
 
 // GET /api/batch/export-data?sessionId=xxx
-// Returns all results for a given session from the JSON file.
-app.get('/api/batch/export-data', (req, res) => {
-  const { sessionId } = req.query;
-  if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
-
-  const filePath = path2.join(process.cwd(), `batch_results_${sessionId}.json`);
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ error: `No results file for session ${sessionId}` });
-  }
-
+app.get('/api/batch/export-data', async (req, res) => {
   try {
-    const raw = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-    const results = raw.map(({ whatsapp_image_base64, push_image_base64, banner_image_base64, ...rest }) => rest);
-    const successful = results.filter(r => r.status === 'success').length;
-    const failed     = results.filter(r => r.status === 'failed').length;
-    res.json({ results, total: results.length, successful, failed });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+    const { sessionId } = req.query;
+    const results = db.prepare('SELECT * FROM merchants WHERE session_id = ?')
+      .all(String(sessionId))
+      .map(r => ({ ...r, key_insights: JSON.parse(r.key_insights || '[]') }));
+
+    res.json({
+      results,
+      total: results.length,
+      successful: results.filter(r => r.status === 'success').length,
+      failed: results.filter(r => r.status === 'failed').length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -889,21 +960,72 @@ app.get('/api/batch/export-data', (req, res) => {
 // CLEVERTAP LINKED CONTENT API
 // ════════════════════════════════════════════════════════════════════════════
 
+async function findMerchant(merchant_id) {
+  try {
+    const m = db.prepare('SELECT * FROM merchants WHERE merchant_id = ?')
+                .get(String(merchant_id));
+    if (!m) return null;
+    return { ...m, key_insights: JSON.parse(m.key_insights || '[]') };
+  } catch (err) {
+    console.error('[SQLite] findMerchant error:', err.message);
+    return null;
+  }
+}
+
 // GET /api/v1/merchants/:merchant_id
 // Returns the fully-structured merchant object for CleverTap Linked Content.
-// Usage: {{Linked.MerchantAPI.content.whatsapp.message}}
-//        {{Linked.MerchantAPI.content.push.title}}
-//        {{Linked.MerchantAPI.content.banner.headline}}
-app.get('/api/v1/merchants/:merchant_id', (req, res) => {
+app.get('/api/v1/merchants/:merchant_id', async (req, res) => {
   const { merchant_id } = req.params;
   console.log(`[CLEVERTAP] Fetching data for merchant_id: ${merchant_id}`);
 
-  const merchant = batchResults.find(m => String(m.merchant_id) === String(merchant_id));
-  if (!merchant) {
-    return res.status(404).json({ error: 'Merchant not found' });
-  }
+  const m = await findMerchant(merchant_id);
+  if (!m) return res.status(404).json({ error: 'Merchant not found' });
 
-  res.json(merchant);
+  res.json(structureMerchant(m, m.processed_at));
+});
+
+// GET /api/clevertap/whatsapp?merchant_id=xxx
+app.get('/api/clevertap/whatsapp', async (req, res) => {
+  const { merchant_id } = req.query;
+  if (!merchant_id) return res.status(400).json({ error: 'merchant_id required' });
+  const m = await findMerchant(merchant_id);
+  if (!m) return res.status(404).json({ error: `Merchant ${merchant_id} not found` });
+  res.json({
+    merchant_id:       m.merchant_id,
+    business_name:     m.name,
+    pi_commerce_angle: m.cohort,
+    message:           m.whatsapp_message
+  });
+});
+
+// GET /api/clevertap/push?merchant_id=xxx
+app.get('/api/clevertap/push', async (req, res) => {
+  const { merchant_id } = req.query;
+  if (!merchant_id) return res.status(400).json({ error: 'merchant_id required' });
+  const m = await findMerchant(merchant_id);
+  if (!m) return res.status(404).json({ error: `Merchant ${merchant_id} not found` });
+  res.json({
+    merchant_id:       m.merchant_id,
+    business_name:     m.name,
+    pi_commerce_angle: m.cohort,
+    title:             m.push_notification?.split('.')[0] || m.push_notification,
+    body:              m.push_notification
+  });
+});
+
+// GET /api/clevertap/banner?merchant_id=xxx
+app.get('/api/clevertap/banner', async (req, res) => {
+  const { merchant_id } = req.query;
+  if (!merchant_id) return res.status(400).json({ error: 'merchant_id required' });
+  const m = await findMerchant(merchant_id);
+  if (!m) return res.status(404).json({ error: `Merchant ${merchant_id} not found` });
+  res.json({
+    merchant_id:       m.merchant_id,
+    business_name:     m.name,
+    pi_commerce_angle: m.cohort,
+    headline:          m.banner_copy?.split('.')[0] || m.banner_copy,
+    subtext:           m.banner_copy
+  });
 });
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -917,5 +1039,8 @@ app.listen(PORT, () => {
   console.log('  POST /api/google/find-place          → Google Places Text Search');
   console.log('  POST /api/google/reviews             → Google Places Details (max 5)');
   console.log(`  POST /api/generate-copy              → ${OPENAI_MODEL}: classify + generate copy`);
-  console.log('  GET  /api/v1/merchants/:merchant_id  → CleverTap Linked Content\n');
+  console.log('  GET  /api/v1/merchants/:merchant_id  → CleverTap Linked Content');
+  console.log('  GET  /api/clevertap/whatsapp         → WhatsApp message');
+  console.log('  GET  /api/clevertap/push             → Push notification');
+  console.log('  GET  /api/clevertap/banner           → Banner copy\n');
 });
