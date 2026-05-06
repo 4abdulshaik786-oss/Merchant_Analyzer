@@ -1,12 +1,10 @@
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
 require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
-
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
