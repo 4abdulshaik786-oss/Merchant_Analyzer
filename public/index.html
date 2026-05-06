@@ -388,12 +388,18 @@
   .mode-toggle button.active { background: #1a1a1a; color: #fff; }
   .mode-toggle button:not(.active) { background: #f0f0f0; color: #444; }
 
-  /* ─── BATCH INFO BANNER ────────────────────────────────────────── */
-  .batch-info-banner {
-    background: #e8f4fd; border: 1px solid #b3d9f5;
-    border-radius: 8px; padding: 10px 14px;
-    font-size: 12px; font-family: 'SF Mono', 'Fira Mono', monospace;
-    color: #1a5276; margin-bottom: 14px;
+  /* ─── FILE UPLOAD AREA ─────────────────────────────────────────── */
+  #upload-area {
+    border: 2px dashed #CCCCCC; border-radius: 10px; background: #FAFAF9;
+    min-height: 130px; display: flex; align-items: center; justify-content: center;
+    text-align: center; cursor: pointer; margin-bottom: 16px; padding: 20px;
+    transition: all 0.2s ease;
+  }
+  #upload-area:hover, #upload-area.drag-over {
+    border-color: #003580; background: #F0F4FF;
+  }
+  #upload-area.file-loaded {
+    border: 2px solid #22C55E; background: #F0FDF4;
   }
 
   /* ─── CSV PREVIEW TABLE ────────────────────────────────────────── */
@@ -648,37 +654,58 @@
   <!-- ═══════════════════════════════════════════════════════════════ -->
   <div id="batchSection" class="hidden">
 
-    <!-- Info banner -->
-    <div class="batch-info-banner">
-      📄 Reading from: <strong>MerchantData.csv</strong> — located in project root
+    <!-- File upload area -->
+    <div id="upload-area"
+         onclick="document.getElementById('csv-file-input').click()"
+         ondragover="event.preventDefault(); this.classList.add('drag-over')"
+         ondragleave="this.classList.remove('drag-over')"
+         ondrop="handleFileDrop(event)">
+      <div id="upload-placeholder">
+        <div style="font-size:32px">📁</div>
+        <div style="font-weight:600; margin-top:8px">Drop your CSV or Excel file here</div>
+        <div style="color:#888; font-size:13px; margin-top:4px">or click to browse</div>
+        <div style="color:#aaa; font-size:12px; margin-top:8px">Supported: .csv · .xlsx · .xls</div>
+      </div>
+      <div id="upload-success" style="display:none">
+        <div style="color:#16A34A; font-size:24px">✓</div>
+        <div id="upload-filename" style="font-weight:600"></div>
+        <div id="upload-rowcount" style="color:#666; font-size:13px"></div>
+        <span id="upload-remove"
+              onclick="event.stopPropagation(); removeUploadedFile()"
+              style="color:#999; font-size:12px; cursor:pointer; text-decoration:underline; margin-top:4px; display:block">
+          × Remove and re-upload
+        </span>
+      </div>
+    </div>
+    <input type="file" id="csv-file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileSelect(event)" />
+
+    <!-- Upload preview table (first 5 rows) -->
+    <div id="preview-table-section" style="display:none; margin-bottom:16px;">
+      <table style="width:100%; border-collapse:collapse; border:1px solid #e8e8e6; border-radius:8px; overflow:hidden; font-family:inherit;">
+        <thead>
+          <tr style="background:#003580;">
+            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">#</th>
+            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">Merchant ID</th>
+            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">Business Name</th>
+            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">Latitude</th>
+            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">Longitude</th>
+            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="preview-tbody"></tbody>
+      </table>
+      <p id="preview-count-label" style="font-size:12px; color:#888; margin-top:6px;"></p>
     </div>
 
-    <!-- CSV preview card -->
-    <div class="card" id="batchPreviewCard">
-      <h2>CSV Preview</h2>
-      <div id="batchPreviewError" class="hidden" style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px 14px;color:#991b1b;font-size:13px;margin-bottom:10px;"></div>
-      <div class="batch-table-wrap">
-        <table class="batch-table" id="batchTable">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Merchant ID</th>
-              <th>Business Name</th>
-              <th>Latitude</th>
-              <th>Longitude</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="batchTableBody"></tbody>
-        </table>
-      </div>
-      <div class="batch-count" id="batchCount">Loading…</div>
+    <!-- Hidden processing-status table (used by renderBatchTable/setBatchRowStatus) -->
+    <div style="display:none">
+      <table><tbody id="batchTableBody"></tbody></table>
     </div>
 
     <!-- Control bar -->
     <div class="card batch-control-bar">
       <div id="batchStartRow">
-        <button class="batch-start-btn" id="batchStartBtn" onclick="startBatch()">Start Batch Analysis →</button>
+        <button class="batch-start-btn" id="batchStartBtn" onclick="startBatch()" disabled title="Upload a file to begin">Start Batch Analysis →</button>
         <div class="batch-queued-label" id="batchQueuedLabel"></div>
       </div>
       <div id="batchRunningRow" class="hidden batch-control-mid">
@@ -686,8 +713,6 @@
         <button class="batch-ctrl-btn" id="batchPauseBtn" onclick="toggleBatchPause()">Pause</button>
         <button class="batch-ctrl-btn danger" id="batchStopBtn" onclick="stopBatch()">Stop</button>
       </div>
-
-      <!-- Progress bar -->
       <div class="batch-progress-wrap" id="batchProgressWrap" style="margin-top:12px;">
         <div class="batch-progress-track"><div class="batch-progress-fill" id="batchProgressFill"></div></div>
         <div class="batch-progress-label" id="batchProgressLabel">0 of 0 complete</div>
@@ -712,27 +737,140 @@
       </div>
     </div>
 
-    <!-- Live results (reuses same render cards) -->
-    <div id="batchResultsArea"></div>
-
-    <!-- Completed merchants accordion -->
-    <div class="card hidden" id="batchAccordionCard">
-      <h2>Completed Merchants</h2>
-      <div class="accordion-section" id="accordionList"></div>
+    <!-- Latest result label + live results + note (CHANGE 5) -->
+    <div id="current-result-label"
+         style="display:none; font-size:12px; color:#888; margin-bottom:8px; margin-top:16px;">
+      Latest result — Merchant
+      <span id="current-result-n"></span> of
+      <span id="current-result-total"></span>:
+      <strong id="current-result-name"></strong>
+    </div>
+    <div id="current-result-container">
+      <div id="batchResultsArea"></div>
+    </div>
+    <div id="current-result-note"
+         style="display:none; text-align:center; margin-top:8px; font-size:12px; color:#aaa;">
+      Scroll down to see all completed merchants ↓
     </div>
 
-    <!-- Batch complete banner -->
-    <div class="hidden" id="batchCompleteBanner">
-      <div class="batch-complete-banner">
-        <div>
-          <div class="bc-text" id="bcText">Batch complete!</div>
-          <div class="bc-sub"  id="bcSub"></div>
+    <!-- Completed merchants paginated table (CHANGE 4) -->
+    <div id="completed-table-section" style="display:none; margin-top:24px;">
+      <div id="completed-stats-bar"
+           style="display:flex; gap:16px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
+        <span style="font-size:13px; font-weight:600; color:#1a1a1a;">COMPLETED MERCHANTS</span>
+        <span id="stat-done"   style="font-size:13px; color:#16A34A;">✓ 0 Done</span>
+        <span id="stat-failed" style="font-size:13px; color:#DC2626;">✗ 0 Failed</span>
+        <span id="stat-total"  style="font-size:13px; color:#888;">Total: 0</span>
+      </div>
+      <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+        <input type="text" id="table-search"
+               placeholder="Search by name or merchant ID..."
+               oninput="debounceSearch()"
+               style="flex:1; min-width:200px; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; outline:none;" />
+        <select id="filter-cohort" onchange="applyFilters()"
+                style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; background:#fff; min-width:160px;">
+          <option value="">All Cohorts</option>
+        </select>
+        <select id="filter-status" onchange="applyFilters()"
+                style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; background:#fff;">
+          <option value="">All Status</option>
+          <option value="success">✓ Done</option>
+          <option value="failed">✗ Failed</option>
+        </select>
+        <span id="clear-filters-btn" onclick="clearFilters()"
+              style="display:none; padding:8px 12px; color:#003580; cursor:pointer; font-size:13px; text-decoration:underline; align-self:center;">
+          Clear filters ×
+        </span>
+      </div>
+      <div style="border:1px solid #e8e8e6; border-radius:10px; overflow:hidden;">
+        <table style="width:100%; border-collapse:collapse; font-family:inherit;">
+          <thead>
+            <tr style="background:#003580;">
+              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:40px;">#</th>
+              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:80px;">ID</th>
+              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600;">Business Name</th>
+              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:140px;">Cohort</th>
+              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:70px;">Rating</th>
+              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:80px;">Status</th>
+              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:90px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="completed-tbody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; flex-wrap:wrap; gap:8px;">
+        <span id="pagination-info" style="font-size:13px; color:#888;"></span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button id="prev-page-btn" onclick="changePage(-1)"
+                  style="padding:6px 14px; border:1px solid #ddd; border-radius:6px; font-size:13px; cursor:pointer; background:#fff;">
+            ← Previous
+          </button>
+          <span id="page-indicator" style="font-size:13px; color:#333;"></span>
+          <button id="next-page-btn" onclick="changePage(1)"
+                  style="padding:6px 14px; border:1px solid #ddd; border-radius:6px; font-size:13px; cursor:pointer; background:#fff;">
+            Next →
+          </button>
         </div>
-        <button class="pdf-btn" id="downloadPdfBtn">Download Excel Report →</button>
+        <span id="new-results-badge" onclick="goToLastPage()"
+              style="display:none; background:#003580; color:#fff; font-size:12px; padding:4px 12px; border-radius:99px; cursor:pointer;">
+          ↓ New results
+        </span>
       </div>
     </div>
 
+    <!-- Batch complete banner (CHANGE 3) -->
+    <div id="batchCompleteBanner"
+         style="display:none; background:#F0FDF4; border:1px solid #86EFAC; border-radius:10px; padding:20px 24px; margin-top:16px; text-align:center;">
+      <div style="font-size:18px; font-weight:600; color:#166534;">✅ Batch complete!</div>
+      <div id="batch-complete-stats" style="color:#555; font-size:14px; margin-top:4px;"></div>
+      <button id="download-excel-btn"
+              onclick="handleExcelDownload()"
+              style="margin-top:16px; background:#003580; color:#fff; padding:10px 24px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
+        Download Excel Report ↓
+      </button>
+    </div>
+
   </div><!-- end #batchSection -->
+
+  <!-- Preview modal (CHANGE 4D) -->
+  <div id="preview-modal-overlay"
+       onclick="closePreviewModal()"
+       style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+    <div onclick="event.stopPropagation()"
+         style="background:#fff; border-radius:12px; width:90%; max-width:620px; max-height:85vh; overflow-y:auto; padding:24px; position:relative;">
+      <button onclick="closePreviewModal()"
+              style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:20px; cursor:pointer; color:#888; line-height:1;">×</button>
+      <div id="modal-merchant-name" style="font-size:18px; font-weight:600; padding-right:32px;"></div>
+      <div id="modal-merchant-meta" style="font-size:13px; color:#888; margin-top:4px; margin-bottom:16px;"></div>
+      <div style="display:flex; gap:4px; margin-bottom:16px;">
+        <button onclick="switchModalTab('whatsapp')" id="modal-tab-whatsapp"
+                style="padding:6px 16px; border-radius:6px; font-size:13px; cursor:pointer; border:1px solid #ddd; background:#1a1a1a; color:#fff; font-weight:500;">
+          WhatsApp
+        </button>
+        <button onclick="switchModalTab('push')" id="modal-tab-push"
+                style="padding:6px 16px; border-radius:6px; font-size:13px; cursor:pointer; border:1px solid #ddd; background:#fff; color:#333;">
+          Push
+        </button>
+        <button onclick="switchModalTab('banner')" id="modal-tab-banner"
+                style="padding:6px 16px; border-radius:6px; font-size:13px; cursor:pointer; border:1px solid #ddd; background:#fff; color:#333;">
+          Banner
+        </button>
+      </div>
+      <div id="modal-content"
+           style="background:#f9fafb; border-radius:8px; padding:16px; font-size:14px; line-height:1.7; white-space:pre-wrap; min-height:120px;"></div>
+      <div style="display:flex; justify-content:space-between; margin-top:16px;">
+        <button onclick="navigateModal(-1)"
+                style="padding:8px 16px; border:1px solid #ddd; border-radius:6px; font-size:13px; cursor:pointer; background:#fff;">
+          ← Previous
+        </button>
+        <span id="modal-nav-label" style="font-size:13px; color:#888; align-self:center;"></span>
+        <button onclick="navigateModal(1)"
+                style="padding:8px 16px; border:1px solid #ddd; border-radius:6px; font-size:13px; cursor:pointer; background:#fff;">
+          Next →
+        </button>
+      </div>
+    </div>
+  </div>
 
 </div>
 
@@ -1139,41 +1277,135 @@
     $('batchSection').classList.toggle('hidden', isManual);
     $('modeManual').classList.toggle('active', isManual);
     $('modeBatch').classList.toggle('active', !isManual);
-    if (!isManual && batchMerchants.length === 0) loadBatchPreview();
   }
 
-  // ── State ────────────────────────────────────────────────────────
-  let batchMerchants  = [];
+  // ── Batch state ──────────────────────────────────────────────────
+  let uploadedMerchants = [];
+  let completedMerchants = [];
   let batchSessionId  = null;
   let batchIsPaused   = false;
   let batchIsStopped  = false;
   let batchSuccess    = 0;
   let batchFail       = 0;
   let batchTimings    = [];
-  let batchAccordionData = []; // { merchant, copy, status, error }
 
-  // ── Load preview from CSV ────────────────────────────────────────
-  async function loadBatchPreview() {
-    const errDiv  = $('batchPreviewError');
-    const tbody   = $('batchTableBody');
-    const countEl = $('batchCount');
-    errDiv.classList.add('hidden');
-    tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;color:#999;font-size:13px;">Loading…</td></tr>';
-    countEl.textContent = 'Loading…';
+  // ── File upload ──────────────────────────────────────────────────
+  function handleFileDrop(event) {
+    event.preventDefault();
+    $('upload-area').classList.remove('drag-over');
+    const file = event.dataTransfer.files[0];
+    if (file) processUploadedFile(file);
+  }
 
+  function handleFileSelect(event) {
+    const file = event.target.files[0];
+    if (file) processUploadedFile(file);
+  }
+
+  function removeUploadedFile() {
+    uploadedMerchants = [];
+    $('upload-area').classList.remove('file-loaded');
+    $('upload-placeholder').style.display = 'block';
+    $('upload-success').style.display = 'none';
+    $('csv-file-input').value = '';
+    $('preview-table-section').style.display = 'none';
+    updateStartButton();
+  }
+
+  async function processUploadedFile(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    let rows = [];
     try {
-      const { merchants, total } = await apiGet('/api/batch/preview');
-      batchMerchants = merchants;
-      renderBatchTable(merchants);
-      countEl.textContent = `${total} merchant${total !== 1 ? 's' : ''} loaded from MerchantData.csv`;
-      $('batchQueuedLabel').textContent = `${total} merchants queued`;
-      $('batchStartBtn').disabled = total === 0;
-    } catch (e) {
-      errDiv.textContent = e.message || 'Failed to load MerchantData.csv';
-      errDiv.classList.remove('hidden');
-      tbody.innerHTML = '';
-      countEl.textContent = '';
+      if (ext === 'csv') {
+        const text = await file.text();
+        rows = parseCSV(text);
+      } else if (ext === 'xlsx' || ext === 'xls') {
+        const buffer = await file.arrayBuffer();
+        const wb = XLSX.read(buffer, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      } else {
+        showBatchUploadError('Unsupported file type. Please upload .csv, .xlsx, or .xls');
+        return;
+      }
+
+      const normalized = rows.map(row => {
+        const n = {};
+        Object.keys(row).forEach(k => {
+          const lower = k.toLowerCase().replace(/[_\s]/g, '');
+          if (['merchantid','merchant_id','id'].includes(lower))          n.merchant_id = row[k];
+          else if (['name','businessname','business_name'].includes(lower)) n.name        = row[k];
+          else if (['latitude','lat'].includes(lower))                     n.latitude    = row[k];
+          else if (['longitude','lng','lon','long'].includes(lower))       n.longitude   = row[k];
+        });
+        return n;
+      }).filter(r => r.merchant_id && r.name);
+
+      if (normalized.length === 0) {
+        showBatchUploadError(
+          'Missing required columns: merchant_id, name, latitude, longitude. Please check your file.'
+        );
+        return;
+      }
+
+      uploadedMerchants = normalized;
+      $('upload-area').classList.add('file-loaded');
+      $('upload-placeholder').style.display = 'none';
+      $('upload-success').style.display = 'block';
+      $('upload-filename').textContent = file.name;
+      $('upload-rowcount').textContent = `${normalized.length} merchants found`;
+      renderUploadPreview(normalized);
+      updateStartButton();
+    } catch (err) {
+      showBatchUploadError('Failed to parse file: ' + err.message);
     }
+  }
+
+  function parseCSV(text) {
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+    return lines.slice(1).filter(line => line.trim()).map(line => {
+      const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = values[i] || '');
+      return obj;
+    });
+  }
+
+  function renderUploadPreview(merchants) {
+    const section = $('preview-table-section');
+    const tbody   = $('preview-tbody');
+    const preview = merchants.slice(0, 5);
+    tbody.innerHTML = preview.map((m, i) => `
+      <tr style="background:${i % 2 === 0 ? '#fff' : '#f9fafb'}">
+        <td style="padding:8px 12px; font-size:13px;">${i + 1}</td>
+        <td style="padding:8px 12px; font-size:13px;">${escapeHtml(String(m.merchant_id))}</td>
+        <td style="padding:8px 12px; font-size:13px; font-weight:500;">${escapeHtml(m.name)}</td>
+        <td style="padding:8px 12px; font-size:13px; color:#666;">${escapeHtml(String(m.latitude ?? ''))}</td>
+        <td style="padding:8px 12px; font-size:13px; color:#666;">${escapeHtml(String(m.longitude ?? ''))}</td>
+        <td style="padding:8px 12px;">
+          <span style="background:#f0f0ee; color:#888; font-size:11px; padding:2px 10px; border-radius:99px;">Pending</span>
+        </td>
+      </tr>
+    `).join('');
+    $('preview-count-label').textContent =
+      `Showing ${Math.min(5, merchants.length)} of ${merchants.length} merchants · All ${merchants.length} will be processed`;
+    section.style.display = 'block';
+  }
+
+  function updateStartButton() {
+    const btn = $('batchStartBtn');
+    if (uploadedMerchants.length > 0) {
+      btn.disabled = false;
+      btn.title = '';
+    } else {
+      btn.disabled = true;
+      btn.title = 'Upload a file to begin';
+    }
+  }
+
+  function showBatchUploadError(msg) {
+    alert(msg);
   }
 
   async function apiGet(path) {
@@ -1282,56 +1514,242 @@
     } catch { return null; }
   }
 
-  // ── Render batch accordion item ───────────────────────────────────
-  function addAccordionItem(merchant, copyData, status, error) {
-    batchAccordionData.push({ merchant, copyData, status, error });
-    const card = $('batchAccordionCard');
-    card.classList.remove('hidden');
-    const list = $('accordionList');
+  // ── Paginated results table (CHANGE 4) ──────────────────────────
+  const PAGE_SIZE = 20;
+  let filteredMerchants = [];
+  let currentPage = 1;
+  let searchDebounceTimer = null;
 
-    const idx = batchAccordionData.length - 1;
-    const icon = status === 'done' ? '✅' : '❌';
-    const angleMeta = copyData ? (ANGLES[copyData.classification?.angle] || {}) : {};
-    const angleLabel = angleMeta.name || '—';
+  const COHORT_COLORS = {
+    'silent churn':       { bg: '#DBEAFE', text: '#1E40AF' },
+    'negative':           { bg: '#FEE2E2', text: '#991B1B' },
+    'hidden ceiling':     { bg: '#FEF9C3', text: '#92400E' },
+    'acquisition_gap':    { bg: '#DCFCE7', text: '#166534' },
+    'retention_winback':  { bg: '#DCFCE7', text: '#166534' },
+    'frequency':          { bg: '#FFEDD5', text: '#9A3412' },
+    'off_peak_imbalance': { bg: '#FCE7F3', text: '#9D174D' },
+    'competitive_loss':   { bg: '#FEE2E2', text: '#991B1B' },
+    'personalization_gap':{ bg: '#EDE9FE', text: '#5B21B6' },
+  };
 
-    const item = document.createElement('div');
-    item.className = 'accordion-item open';
-    item.id = `acc-${idx}`;
-    item.innerHTML = `
-      <div class="accordion-header" onclick="toggleAccordion(${idx})">
-        <span class="accordion-status-icon">${icon}</span>
-        <span class="accordion-title">${escapeHtml(merchant.name)}</span>
-        <span class="accordion-meta">${escapeHtml(String(merchant.merchant_id))} · ${status === 'done' ? angleLabel : 'Failed'}</span>
-        <span class="accordion-chevron">▼</span>
-      </div>
-      <div class="accordion-body">
-        ${status === 'failed'
-          ? `<div class="accordion-error">✗ ${escapeHtml(error || 'Unknown error')}</div>`
-          : `<div class="accordion-copy-grid">
-              <div class="accordion-copy-cell">
-                <div class="accordion-copy-label">WhatsApp</div>
-                <div class="accordion-copy-body">${escapeHtml(copyData?.copy?.whatsapp || '—')}</div>
-              </div>
-              <div class="accordion-copy-cell">
-                <div class="accordion-copy-label">Push</div>
-                <div class="accordion-copy-body">${escapeHtml(copyData?.copy?.push || '—')}</div>
-              </div>
-              <div class="accordion-copy-cell">
-                <div class="accordion-copy-label">Banner</div>
-                <div class="accordion-copy-body">${escapeHtml((copyData?.copy?.banner?.text || '') + (copyData?.copy?.banner?.sub ? '\n' + copyData.copy.banner.sub : ''))}</div>
-              </div>
-            </div>`
-        }
-      </div>`;
-    // Close all others, open new
-    list.querySelectorAll('.accordion-item').forEach(el => el.classList.remove('open'));
-    list.appendChild(item);
-    item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  function getCohortColor(cohort) {
+    if (!cohort) return { bg: '#F0F0EE', text: '#888' };
+    return COHORT_COLORS[cohort.toLowerCase()] || { bg: '#F0F0EE', text: '#555' };
   }
 
-  function toggleAccordion(idx) {
-    const item = $(`acc-${idx}`);
-    if (item) item.classList.toggle('open');
+  function addCompletedMerchant(merchant) {
+    completedMerchants.push(merchant);
+    updateCohortFilter();
+    updateStatsBar();
+    const totalPages = Math.ceil(filteredMerchants.length / PAGE_SIZE);
+    const isOnLastPage = currentPage >= totalPages;
+    applyFilters(false);
+    const newTotalPages = Math.ceil(filteredMerchants.length / PAGE_SIZE);
+    if (isOnLastPage) {
+      currentPage = newTotalPages;
+      renderTablePage();
+    } else {
+      const badge = $('new-results-badge');
+      const current = parseInt(badge.dataset.count || '0') + 1;
+      badge.dataset.count = current;
+      badge.textContent = `↓ ${current} new result${current > 1 ? 's' : ''}`;
+      badge.style.display = 'inline-block';
+    }
+    $('completed-table-section').style.display = 'block';
+  }
+
+  function applyFilters(resetPage = true) {
+    const search = ($('table-search')?.value || '').toLowerCase();
+    const cohort = $('filter-cohort')?.value || '';
+    const status = $('filter-status')?.value || '';
+    filteredMerchants = completedMerchants.filter(m => {
+      const matchSearch = !search ||
+        (m.name || '').toLowerCase().includes(search) ||
+        String(m.merchant_id).toLowerCase().includes(search);
+      const matchCohort = !cohort || (m.cohort || '').toLowerCase() === cohort.toLowerCase();
+      const matchStatus = !status || m.status === status;
+      return matchSearch && matchCohort && matchStatus;
+    });
+    const clearBtn = $('clear-filters-btn');
+    if (clearBtn) clearBtn.style.display = (search || cohort || status) ? 'inline' : 'none';
+    if (resetPage) currentPage = 1;
+    renderTablePage();
+  }
+
+  function clearFilters() {
+    const s = $('table-search'); if (s) s.value = '';
+    const c = $('filter-cohort'); if (c) c.value = '';
+    const f = $('filter-status'); if (f) f.value = '';
+    applyFilters();
+  }
+
+  function debounceSearch() {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => applyFilters(), 200);
+  }
+
+  function renderTablePage() {
+    const tbody = $('completed-tbody');
+    if (!tbody) return;
+    const total = filteredMerchants.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    currentPage = Math.min(currentPage, totalPages);
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const end   = Math.min(start + PAGE_SIZE, total);
+    const pageData = filteredMerchants.slice(start, end);
+
+    tbody.innerHTML = pageData.map((m, i) => {
+      const rowNum  = start + i + 1;
+      const color   = getCohortColor(m.cohort);
+      const isDone  = m.status === 'success';
+      const rowBg   = m.status === 'failed' ? '#FFF5F5' : (i % 2 === 0 ? '#fff' : '#F9FAFB');
+      return `
+        <tr style="background:${rowBg}; cursor:default;"
+            onmouseover="this.style.background='#EFF6FF'"
+            onmouseout="this.style.background='${rowBg}'">
+          <td style="padding:10px 12px; font-size:13px; color:#888;">${rowNum}</td>
+          <td style="padding:10px 12px; font-size:12px; color:#888;">${escapeHtml(String(m.merchant_id || ''))}</td>
+          <td style="padding:10px 12px; font-size:13px; font-weight:500;">${escapeHtml(m.name || '')}</td>
+          <td style="padding:10px 12px;">
+            <span style="background:${color.bg}; color:${color.text}; font-size:11px; padding:3px 10px; border-radius:99px; font-weight:500; white-space:nowrap;">
+              ${escapeHtml(m.cohort || '—')}
+            </span>
+          </td>
+          <td style="padding:10px 12px; font-size:13px;">${m.avg_rating ? m.avg_rating + ' ★' : '—'}</td>
+          <td style="padding:10px 12px;">
+            ${isDone
+              ? '<span style="color:#16A34A; font-size:13px;">✓ Done</span>'
+              : '<span style="color:#DC2626; font-size:13px;">✗ Failed</span>'
+            }
+          </td>
+          <td style="padding:10px 12px;">
+            <button onclick="openPreviewModal(${start + i})"
+                    style="padding:4px 12px; font-size:12px; border:1px solid #ddd; border-radius:6px; background:#fff; cursor:pointer; color:#003580; font-weight:500;">
+              Preview
+            </button>
+          </td>
+        </tr>`;
+    }).join('');
+
+    const info = $('pagination-info');
+    if (info) info.textContent = total === 0 ? 'No results' :
+      `Showing ${start + 1}–${end} of ${total} merchant${total !== 1 ? 's' : ''}` +
+      (total < completedMerchants.length ? ' (filtered)' : '');
+
+    const pi = $('page-indicator');
+    if (pi) pi.textContent = `Page ${currentPage} of ${totalPages}`;
+
+    const prev = $('prev-page-btn'); if (prev) prev.disabled = currentPage <= 1;
+    const next = $('next-page-btn'); if (next) next.disabled = currentPage >= totalPages;
+  }
+
+  function changePage(dir) {
+    const total = filteredMerchants.length;
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    currentPage = Math.max(1, Math.min(currentPage + dir, totalPages));
+    renderTablePage();
+    const badge = $('new-results-badge');
+    if (badge) { badge.style.display = 'none'; badge.dataset.count = '0'; }
+  }
+
+  function goToLastPage() {
+    currentPage = Math.ceil(filteredMerchants.length / PAGE_SIZE);
+    renderTablePage();
+    const badge = $('new-results-badge');
+    if (badge) { badge.style.display = 'none'; badge.dataset.count = '0'; }
+  }
+
+  function updateCohortFilter() {
+    const select = $('filter-cohort');
+    if (!select) return;
+    const existing = Array.from(select.options).map(o => o.value);
+    completedMerchants.forEach(m => {
+      if (m.cohort && !existing.includes(m.cohort)) {
+        const opt = document.createElement('option');
+        opt.value = m.cohort;
+        opt.textContent = m.cohort;
+        select.appendChild(opt);
+      }
+    });
+  }
+
+  function updateStatsBar() {
+    const done   = completedMerchants.filter(m => m.status === 'success').length;
+    const failed = completedMerchants.filter(m => m.status === 'failed').length;
+    const total  = completedMerchants.length;
+    const d = $('stat-done');   if (d) d.textContent = `✓ ${done} Done`;
+    const f = $('stat-failed'); if (f) f.textContent = `✗ ${failed} Failed`;
+    const t = $('stat-total');  if (t) t.textContent = `Total: ${total}`;
+  }
+
+  // ── Preview modal (CHANGE 4D) ─────────────────────────────────────
+  let currentModalIndex = 0;
+  let currentModalTab   = 'whatsapp';
+
+  function openPreviewModal(index) {
+    currentModalIndex = index;
+    currentModalTab   = 'whatsapp';
+    renderModal();
+    const overlay = $('preview-modal-overlay');
+    overlay.style.display = 'flex';
+    document.addEventListener('keydown', handleModalKeydown);
+  }
+
+  function closePreviewModal() {
+    $('preview-modal-overlay').style.display = 'none';
+    document.removeEventListener('keydown', handleModalKeydown);
+  }
+
+  function handleModalKeydown(e) {
+    if (e.key === 'Escape')      closePreviewModal();
+    if (e.key === 'ArrowRight')  navigateModal(1);
+    if (e.key === 'ArrowLeft')   navigateModal(-1);
+  }
+
+  function navigateModal(dir) {
+    const total = filteredMerchants.length;
+    currentModalIndex = Math.max(0, Math.min(currentModalIndex + dir, total - 1));
+    renderModal();
+  }
+
+  function switchModalTab(tab) {
+    currentModalTab = tab;
+    ['whatsapp', 'push', 'banner'].forEach(t => {
+      const btn = $(`modal-tab-${t}`);
+      if (btn) {
+        btn.style.background = t === tab ? '#1a1a1a' : '#fff';
+        btn.style.color      = t === tab ? '#fff'    : '#333';
+      }
+    });
+    renderModalContent();
+  }
+
+  function renderModal() {
+    const m = filteredMerchants[currentModalIndex];
+    if (!m) return;
+    const color = getCohortColor(m.cohort);
+    const name = $('modal-merchant-name');
+    if (name) name.textContent = m.name;
+    const meta = $('modal-merchant-meta');
+    if (meta) meta.innerHTML =
+      `${escapeHtml(m.address || '')} &nbsp;·&nbsp; ` +
+      `<span style="background:${color.bg}; color:${color.text}; padding:2px 8px; border-radius:99px; font-size:11px;">${escapeHtml(m.cohort || '')}</span>` +
+      ` &nbsp;·&nbsp; ${m.avg_rating ? m.avg_rating + ' ★' : ''}`;
+    const nav = $('modal-nav-label');
+    if (nav) nav.textContent = `${currentModalIndex + 1} of ${filteredMerchants.length}`;
+    switchModalTab(currentModalTab);
+  }
+
+  function renderModalContent() {
+    const m = filteredMerchants[currentModalIndex];
+    if (!m) return;
+    const content = {
+      whatsapp: m.whatsapp_message  || 'No WhatsApp message generated',
+      push:     m.push_notification || 'No push notification generated',
+      banner:   m.banner_copy       || 'No banner copy generated'
+    };
+    const el = $('modal-content');
+    if (el) el.textContent = content[currentModalTab];
   }
 
   // ── Process one merchant ─────────────────────────────────────────
@@ -1339,6 +1757,17 @@
     const startTime = Date.now();
     $('batchCurrentCard').classList.remove('hidden');
     renderBatchSteps();
+
+    // Update current result label (CHANGE 5)
+    const labelEl = $('current-result-label');
+    if (labelEl) {
+      labelEl.style.display = 'block';
+      const n = $('current-result-n'); if (n) n.textContent = index + 1;
+      const tot = $('current-result-total'); if (tot) tot.textContent = uploadedMerchants.length;
+      const nm = $('current-result-name'); if (nm) nm.textContent = merchant.name;
+    }
+    const noteEl = $('current-result-note');
+    if (noteEl) noteEl.style.display = 'block';
 
     // Steps 0 & 1 — typewriter fill (instant UI)
     setBatchStep(0, 'active');
@@ -1448,32 +1877,45 @@
     const bannerObj = out.copy?.banner || {};
     const bannerText = (bannerObj.text || '') + (bannerObj.sub ? '\n' + bannerObj.sub : '');
     await apiPost('/api/batch/save-result', {
-      sessionId: batchSessionId,
-      merchant_id: merchant.merchant_id,
-      name: place.name,
-      address: place.formattedAddress,
-      latitude: merchant.latitude,
-      longitude: merchant.longitude,
-      cohort: out.classification.angle,
-      cohort_tagline: angleMeta.tag || '',
-      avg_rating: place.rating,
-      total_reviews: place.totalReviews,
+      session_id:       String(batchSessionId),
+      merchant_id:      merchant.merchant_id,
+      name:             place.name,
+      address:          place.formattedAddress,
+      latitude:         merchant.latitude,
+      longitude:        merchant.longitude,
+      cohort:           out.classification.angle,
+      cohort_tagline:   angleMeta.tag || '',
+      avg_rating:       place.rating,
+      total_reviews:    place.totalReviews,
       reviews_analyzed: reviews.length,
       analysis_summary: out.classification?.summary || '',
-      key_insights: out.classification?.issues || [],
+      key_insights:     out.classification?.issues || [],
       whatsapp_message: out.copy?.whatsapp || '',
-      push_notification: out.copy?.push || '',
-      banner_copy: bannerText,
-      status: 'success',
-      error_message: null,
-      processed_at: new Date().toISOString(),
+      push_notification:out.copy?.push     || '',
+      banner_copy:      bannerText,
+      status:           'success',
+      error_message:    null,
     });
     setBatchStep(5, 'done', 'Saved to report');
 
     batchTimings.push(Date.now() - startTime);
     batchSuccess++;
     console.log(`[BATCH ${merchant.merchant_id}] Done ✓`);
-    addAccordionItem(merchant, out, 'done', null);
+
+    const bannerObj2 = out.copy?.banner || {};
+    const bannerStr2 = (bannerObj2.text || '') + (bannerObj2.sub ? '\n' + bannerObj2.sub : '');
+    addCompletedMerchant({
+      merchant_id:      merchant.merchant_id,
+      name:             place.name,
+      address:          place.formattedAddress,
+      cohort:           out.classification.angle,
+      avg_rating:       place.rating,
+      status:           'success',
+      error_message:    null,
+      whatsapp_message: out.copy?.whatsapp || '',
+      push_notification:out.copy?.push     || '',
+      banner_copy:      bannerStr2,
+    });
     return out;
   }
 
@@ -1495,176 +1937,168 @@
       return;
     }
 
-    const btn = $('downloadPdfBtn');
-    btn.textContent = 'Preparing Excel…';
-    btn.disabled = true;
+    if (!completedMerchants || completedMerchants.length === 0) {
+      alert('No results to export.');
+      return;
+    }
 
-    try {
-      const results = batchAccordionData;
-      if (!results || results.length === 0) {
-        btn.textContent = 'No results to export';
-        btn.disabled = false;
-        return;
+    const total      = completedMerchants.length;
+    const successful = completedMerchants.filter(r => r.status === 'success').length;
+    const failed     = completedMerchants.filter(r => r.status === 'failed').length;
+    const dateStr    = new Date().toISOString().slice(0, 10);
+
+    console.log(`[EXPORT] Building Excel with ${total} merchants…`);
+
+    const headers = [
+      'Merchant ID', 'Business Name', 'Address', 'Latitude', 'Longitude',
+      'Google Rating', 'Cohort', 'WhatsApp Message',
+      'Push Notification', 'Banner Copy',
+      'Status', 'Error Message',
+    ];
+
+    const rows = completedMerchants.map(m => [
+      m.merchant_id       || '',
+      m.name              || '',
+      m.address           || '',
+      m.latitude          ?? '',
+      m.longitude         ?? '',
+      m.avg_rating        ?? '',
+      m.cohort            || '',
+      m.whatsapp_message  || '',
+      m.push_notification || '',
+      m.banner_copy       || '',
+      m.status === 'success' ? 'Success' : 'Failed',
+      m.error_message     || '',
+    ]);
+
+    const ws1 = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws1['!cols'] = [
+      { wch: 15 }, { wch: 30 }, { wch: 40 }, { wch: 12 }, { wch: 12 },
+      { wch: 10 }, { wch: 20 }, { wch: 60 }, { wch: 40 }, { wch: 40 },
+      { wch: 12 }, { wch: 30 },
+    ];
+
+    const angleCounts = {};
+    completedMerchants.forEach(m => {
+      if (m.status === 'success' && m.cohort) {
+        angleCounts[m.cohort] = (angleCounts[m.cohort] || 0) + 1;
       }
+    });
+    const angleRows = Object.entries(angleCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([angle, count]) => [
+        (ANGLES[angle] || { name: angle }).name,
+        count,
+        `${Math.round((count / (successful || 1)) * 100)}%`,
+      ]);
 
-      const total      = results.length;
-      const successful = results.filter(r => r.status === 'done').length;
-      const failed     = results.filter(r => r.status === 'failed').length;
-      const dateStr    = new Date().toISOString().slice(0, 10);
+    const summaryData = [
+      ['Pi Commerce Batch Analysis Report'],
+      [`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`],
+      [],
+      ['BATCH STATISTICS'],
+      ['Total Merchants Processed', total],
+      ['Successful', successful],
+      ['Failed', failed],
+      ['Success Rate', `${Math.round((successful / (total || 1)) * 100)}%`],
+      [],
+      ['ANGLE DISTRIBUTION'],
+      ['Angle', 'Count', 'Percentage'],
+      ...angleRows,
+    ];
 
-      console.log(`[EXPORT] Building Excel with ${total} merchants…`);
+    const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
+    ws2['!cols'] = [{ wch: 35 }, { wch: 15 }, { wch: 15 }];
 
-      // ── Sheet 1 — Merchant Results ─────────────────────────────────
-      const headers = [
-        'Merchant ID', 'Business Name', 'Address', 'Latitude', 'Longitude',
-        'Google Rating', 'Total Reviews', 'Reviews Analyzed',
-        'Pi Commerce Angle', 'Angle Tagline', 'Analysis Summary',
-        'Key Insight 1', 'Key Insight 2', 'Key Insight 3',
-        'WhatsApp Message', 'Push Notification', 'Banner Copy',
-        'Status', 'Error Message', 'Processed At',
-      ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws1, 'Merchant Results');
+    XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
 
-      const rows = results.map(r => {
-        const m   = r.merchant;
-        const cd  = r.copyData;
-        const cls = cd?.classification || {};
-        const cp  = cd?.copy || {};
-        const bannerObj = cp.banner || {};
-        const bannerStr = (bannerObj.text || '') + (bannerObj.sub ? '\n' + bannerObj.sub : '');
-        const insights  = cls.issues || [];
-        return [
-          m.merchant_id                                 || '',
-          r.status === 'done' ? (cd?.placeMetadata?.name || m.name) : m.name || '',
-          cd?.placeMetadata?.formattedAddress           || '',
-          m.latitude                                    || '',
-          m.longitude                                   || '',
-          cd?.placeMetadata?.rating                     ?? '',
-          cd?.placeMetadata?.totalReviews               ?? '',
-          '',
-          cls.angle                                     || '',
-          (ANGLES[cls.angle] || {}).tag                 || '',
-          cls.summary                                   || '',
-          insights[0]                                   || '',
-          insights[1]                                   || '',
-          insights[2]                                   || '',
-          cp.whatsapp                                   || '',
-          cp.push                                       || '',
-          bannerStr,
-          r.status === 'done' ? 'Success' : 'Failed',
-          r.error                                       || '',
-          new Date().toISOString(),
-        ];
-      });
+    const filename = `Pi_Commerce_Report_${dateStr}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    console.log(`[EXPORT] Excel ready → ${filename}`);
+  }
 
-      const ws1 = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-      ws1['!cols'] = [
-        { wch: 15 }, { wch: 30 }, { wch: 40 }, { wch: 12 }, { wch: 12 },
-        { wch: 10 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 30 },
-        { wch: 50 }, { wch: 35 }, { wch: 35 }, { wch: 35 },
-        { wch: 60 }, { wch: 40 }, { wch: 40 },
-        { wch: 12 }, { wch: 30 }, { wch: 20 },
-      ];
-
-      // ── Sheet 2 — Summary ──────────────────────────────────────────
-      const angleCounts = {};
-      results.forEach(r => {
-        if (r.status === 'done' && r.copyData?.classification?.angle) {
-          const a = r.copyData.classification.angle;
-          angleCounts[a] = (angleCounts[a] || 0) + 1;
-        }
-      });
-      const angleRows = Object.entries(angleCounts)
-        .sort((a, b) => b[1] - a[1])
-        .map(([angle, count]) => [
-          (ANGLES[angle] || { name: angle }).name,
-          count,
-          `${Math.round((count / (successful || 1)) * 100)}%`,
-        ]);
-
-      const summaryData = [
-        ['Pi Commerce Batch Analysis Report'],
-        [`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`],
-        [],
-        ['BATCH STATISTICS'],
-        ['Total Merchants Processed', total],
-        ['Successful', successful],
-        ['Failed', failed],
-        ['Success Rate', `${Math.round((successful / (total || 1)) * 100)}%`],
-        [],
-        ['ANGLE DISTRIBUTION'],
-        ['Angle', 'Count', 'Percentage'],
-        ...angleRows,
-      ];
-
-      const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
-      ws2['!cols'] = [{ wch: 35 }, { wch: 15 }, { wch: 15 }];
-
-      // ── Build workbook & download ────────────────────────────────────
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws1, 'Merchant Results');
-      XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
-
-      const filename = `Pi_Commerce_Report_${dateStr}.xlsx`;
-      XLSX.writeFile(wb, filename);
-      console.log(`[EXPORT] Excel ready → downloading ${filename}`);
-
-      btn.textContent = '✓ Downloaded';
+  // ── Manual download handler (CHANGE 3) ────────────────────────────
+  async function handleExcelDownload() {
+    const btn = $('download-excel-btn');
+    if (btn) { btn.textContent = 'Preparing…'; btn.disabled = true; }
+    try {
+      await compileExcelAndDownload();
+      if (btn) { btn.textContent = '✓ Downloaded'; btn.style.background = '#aaa'; }
     } catch (e) {
       console.error('[EXPORT] Failed:', e);
-      btn.textContent = 'Export Failed — Retry';
-    } finally {
-      btn.disabled = false;
+      if (btn) { btn.textContent = 'Download Excel Report ↓'; btn.disabled = false; }
     }
   }
 
   // ── Main batch runner ────────────────────────────────────────────
   async function startBatch() {
-    if (batchMerchants.length === 0) return;
-    batchSessionId  = Date.now();
-    batchIsPaused   = false;
-    batchIsStopped  = false;
-    batchSuccess    = 0;
-    batchFail       = 0;
-    batchTimings    = [];
-    batchAccordionData = [];
+    if (uploadedMerchants.length === 0) return;
+    batchSessionId     = Date.now();
+    batchIsPaused      = false;
+    batchIsStopped     = false;
+    batchSuccess       = 0;
+    batchFail          = 0;
+    batchTimings       = [];
+    completedMerchants = [];
+    filteredMerchants  = [];
+    currentPage        = 1;
 
     $('batchStartRow').classList.add('hidden');
     $('batchRunningRow').classList.remove('hidden');
-    $('batchAccordionCard').classList.add('hidden');
-    $('accordionList').innerHTML = '';
-    $('batchCompleteBanner').classList.add('hidden');
+    $('batchCompleteBanner').style.display = 'none';
     $('batchResultsArea').innerHTML = '';
-    renderBatchTable(batchMerchants);
+    $('current-result-label').style.display = 'none';
+    $('current-result-note').style.display = 'none';
+    $('completed-table-section').style.display = 'none';
+    $('completed-tbody').innerHTML = '';
+    const cf = $('filter-cohort');
+    if (cf) while (cf.options.length > 1) cf.remove(1);
+    updateStatsBar();
 
-    for (let i = 0; i < batchMerchants.length; i++) {
+    renderBatchTable(uploadedMerchants);
+
+    for (let i = 0; i < uploadedMerchants.length; i++) {
       if (batchIsStopped) break;
       while (batchIsPaused) await new Promise(r => setTimeout(r, 400));
 
-      updateBatchProgress(i, batchMerchants.length, batchSuccess, batchFail, batchTimings);
+      updateBatchProgress(i, uploadedMerchants.length, batchSuccess, batchFail, batchTimings);
       setBatchRowStatus(i, 'processing');
 
       try {
-        const result = await processBatchMerchant(batchMerchants[i], i);
+        await processBatchMerchant(uploadedMerchants[i], i);
         setBatchRowStatus(i, 'done');
       } catch (err) {
         batchFail++;
-        console.error(`[BATCH ${batchMerchants[i].merchant_id}] Failed:`, err.message);
+        console.error(`[BATCH ${uploadedMerchants[i].merchant_id}] Failed:`, err.message);
         setBatchRowStatus(i, 'failed');
         setBatchStep && setBatchStep(Math.min(5, BATCH_STEPS.length - 1), 'error', err.message);
-        addAccordionItem(batchMerchants[i], null, 'failed', err.message);
+        addCompletedMerchant({
+          merchant_id:   uploadedMerchants[i].merchant_id,
+          name:          uploadedMerchants[i].name,
+          address:       '',
+          cohort:        null,
+          avg_rating:    null,
+          status:        'failed',
+          error_message: err.message,
+          whatsapp_message:  '',
+          push_notification: '',
+          banner_copy:       '',
+        });
         try {
           await apiPost('/api/batch/save-result', {
-            sessionId: batchSessionId,
-            merchant_id: batchMerchants[i].merchant_id,
-            name: batchMerchants[i].name,
-            status: 'failed',
+            session_id:    String(batchSessionId),
+            merchant_id:   uploadedMerchants[i].merchant_id,
+            name:          uploadedMerchants[i].name,
+            status:        'failed',
             error_message: err.message,
           });
         } catch {}
       }
 
-      updateBatchProgress(i + 1, batchMerchants.length, batchSuccess, batchFail, batchTimings);
-      if (i < batchMerchants.length - 1 && !batchIsStopped) {
+      updateBatchProgress(i + 1, uploadedMerchants.length, batchSuccess, batchFail, batchTimings);
+      if (i < uploadedMerchants.length - 1 && !batchIsStopped) {
         await new Promise(r => setTimeout(r, 1500));
       }
     }
@@ -1675,14 +2109,11 @@
     $('batchStartBtn').textContent = 'Run Again →';
     $('batchCurrentCard').classList.add('hidden');
 
-    const completeBanner = $('batchCompleteBanner');
-    completeBanner.classList.remove('hidden');
-    $('bcText').textContent = `Batch complete — ${batchSuccess} succeeded, ${batchFail} failed`;
-    $('bcSub').textContent  = `Session ID: ${batchSessionId}`;
-    completeBanner.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    $('downloadPdfBtn').onclick = () => compileExcelAndDownload();
-    setTimeout(() => compileExcelAndDownload(), 3000);
+    const banner = $('batchCompleteBanner');
+    banner.style.display = 'block';
+    $('batch-complete-stats').textContent =
+      `${completedMerchants.length} merchants processed · ${batchSuccess} successful · ${batchFail} failed`;
+    banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 </script>
 </body>
