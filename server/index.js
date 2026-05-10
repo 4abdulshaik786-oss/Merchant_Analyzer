@@ -2,20 +2,20 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 require('dotenv').config();
 
-const Database = require('better-sqlite3');
+const { Pool } = require('pg');
 const express  = require('express');
 const cors     = require('cors');
 const path     = require('path');
 const fs       = require('fs');
 const fetch    = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
-// ─── SQLite setup ─────────────────────────────────────────────────────────────
-const dbDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir);
+// ─── PostgreSQL (Neon) setup ───────────────────────────────────────────────
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
-const db = new Database(path.join(dbDir, 'merchants.db'));
-
-db.prepare(`
+pool.query(`
   CREATE TABLE IF NOT EXISTS merchants (
     merchant_id      TEXT PRIMARY KEY,
     name             TEXT,
@@ -37,9 +37,12 @@ db.prepare(`
     session_id       TEXT,
     processed_at     TEXT
   )
-`).run();
-
-console.log('[SQLite] Database ready →', path.join(dbDir, 'merchants.db'));
+`).then(() => {
+  console.log('[PostgreSQL] Database ready → Neon');
+}).catch(err => {
+  console.error('[PostgreSQL] Init error:', err.message);
+  process.exit(1);
+});
 
 const app = express();
 app.use(cors());
@@ -870,7 +873,7 @@ app.post('/api/batch/save-result', async (req, res) => {
     const data = req.body || {};
     const { whatsapp_image_base64, push_image_base64, banner_image_base64, ...textData } = data;
 
-    db.prepare(`
+    await pool.query(`
       INSERT INTO merchants (
         merchant_id, name, address, latitude, longitude,
         cohort, cohort_tagline, analysis_summary,
@@ -880,59 +883,60 @@ app.post('/api/batch/save-result', async (req, res) => {
         session_id, processed_at
       )
       VALUES (
-        @merchant_id, @name, @address, @latitude, @longitude,
-        @cohort, @cohort_tagline, @analysis_summary,
-        @key_insights, @whatsapp_message, @push_notification,
-        @banner_copy, @avg_rating, @total_reviews,
-        @reviews_analyzed, @status, @error_message,
-        @session_id, @processed_at
+        $1, $2, $3, $4, $5,
+        $6, $7, $8,
+        $9, $10, $11,
+        $12, $13, $14,
+        $15, $16, $17,
+        $18, $19
       )
       ON CONFLICT(merchant_id) DO UPDATE SET
-        name=excluded.name,
-        address=excluded.address,
-        latitude=excluded.latitude,
-        longitude=excluded.longitude,
-        cohort=excluded.cohort,
-        cohort_tagline=excluded.cohort_tagline,
-        analysis_summary=excluded.analysis_summary,
-        key_insights=excluded.key_insights,
-        whatsapp_message=excluded.whatsapp_message,
-        push_notification=excluded.push_notification,
-        banner_copy=excluded.banner_copy,
-        avg_rating=excluded.avg_rating,
-        total_reviews=excluded.total_reviews,
-        reviews_analyzed=excluded.reviews_analyzed,
-        status=excluded.status,
-        error_message=excluded.error_message,
-        session_id=excluded.session_id,
-        processed_at=excluded.processed_at
-    `).run({
-      merchant_id:      String(textData.merchant_id),
-      name:             textData.name             || null,
-      address:          textData.address          || null,
-      latitude:         textData.latitude         ?? null,
-      longitude:        textData.longitude        ?? null,
-      cohort:           textData.cohort           || null,
-      cohort_tagline:   textData.cohort_tagline   || null,
-      analysis_summary: textData.analysis_summary || null,
-      key_insights:     JSON.stringify(textData.key_insights || []),
-      whatsapp_message: textData.whatsapp_message  || null,
-      push_notification:textData.push_notification || null,
-      banner_copy:      textData.banner_copy       || null,
-      avg_rating:       textData.avg_rating        ?? null,
-      total_reviews:    textData.total_reviews     ?? null,
-      reviews_analyzed: textData.reviews_analyzed  ?? null,
-      status:           textData.status            || 'pending',
-      error_message:    textData.error_message     || null,
-      session_id:       String(textData.session_id || ''),
-      processed_at:     new Date().toISOString(),
-    });
+        name=EXCLUDED.name,
+        address=EXCLUDED.address,
+        latitude=EXCLUDED.latitude,
+        longitude=EXCLUDED.longitude,
+        cohort=EXCLUDED.cohort,
+        cohort_tagline=EXCLUDED.cohort_tagline,
+        analysis_summary=EXCLUDED.analysis_summary,
+        key_insights=EXCLUDED.key_insights,
+        whatsapp_message=EXCLUDED.whatsapp_message,
+        push_notification=EXCLUDED.push_notification,
+        banner_copy=EXCLUDED.banner_copy,
+        avg_rating=EXCLUDED.avg_rating,
+        total_reviews=EXCLUDED.total_reviews,
+        reviews_analyzed=EXCLUDED.reviews_analyzed,
+        status=EXCLUDED.status,
+        error_message=EXCLUDED.error_message,
+        session_id=EXCLUDED.session_id,
+        processed_at=EXCLUDED.processed_at
+    `, [
+      String(textData.merchant_id),
+      textData.name             || null,
+      textData.address          || null,
+      textData.latitude         ?? null,
+      textData.longitude        ?? null,
+      textData.cohort           || null,
+      textData.cohort_tagline   || null,
+      textData.analysis_summary || null,
+      JSON.stringify(textData.key_insights || []),
+      textData.whatsapp_message  || null,
+      textData.push_notification || null,
+      textData.banner_copy       || null,
+      textData.avg_rating        ?? null,
+      textData.total_reviews     ?? null,
+      textData.reviews_analyzed  ?? null,
+      textData.status            || 'pending',
+      textData.error_message     || null,
+      String(textData.session_id || ''),
+      new Date().toISOString(),
+    ]);
 
-    const total = db.prepare('SELECT COUNT(*) as count FROM merchants').get().count;
-    console.log(`[BATCH ${textData.merchant_id}] Saved to SQLite | Total: ${total}`);
+    const countResult = await pool.query('SELECT COUNT(*) as count FROM merchants');
+    const total = parseInt(countResult.rows[0].count, 10);
+    console.log(`[BATCH ${textData.merchant_id}] Saved to PostgreSQL | Total: ${total}`);
     res.json({ saved: true, total_saved: total });
   } catch (err) {
-    console.error('[SQLite] Save error:', err.message);
+    console.error('[PostgreSQL] Save error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -941,9 +945,8 @@ app.post('/api/batch/save-result', async (req, res) => {
 app.get('/api/batch/export-data', async (req, res) => {
   try {
     const { sessionId } = req.query;
-    const results = db.prepare('SELECT * FROM merchants WHERE session_id = ?')
-      .all(String(sessionId))
-      .map(r => ({ ...r, key_insights: JSON.parse(r.key_insights || '[]') }));
+    const { rows } = await pool.query('SELECT * FROM merchants WHERE session_id = $1', [String(sessionId)]);
+    const results = rows.map(r => ({ ...r, key_insights: JSON.parse(r.key_insights || '[]') }));
 
     res.json({
       results,
@@ -962,12 +965,12 @@ app.get('/api/batch/export-data', async (req, res) => {
 
 async function findMerchant(merchant_id) {
   try {
-    const m = db.prepare('SELECT * FROM merchants WHERE merchant_id = ?')
-                .get(String(merchant_id));
-    if (!m) return null;
+    const { rows } = await pool.query('SELECT * FROM merchants WHERE merchant_id = $1', [String(merchant_id)]);
+    if (rows.length === 0) return null;
+    const m = rows[0];
     return { ...m, key_insights: JSON.parse(m.key_insights || '[]') };
   } catch (err) {
-    console.error('[SQLite] findMerchant error:', err.message);
+    console.error('[PostgreSQL] findMerchant error:', err.message);
     return null;
   }
 }

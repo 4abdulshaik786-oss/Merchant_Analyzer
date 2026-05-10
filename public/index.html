@@ -943,7 +943,7 @@
   }
 
   // ─── API helpers ───────────────────────────────────────────────
-  const API = 'https://merchant-review-analyzer-vwpn.onrender.com';
+  const API = 'http://localhost:3000';
   async function apiPost(path, body) {
     const r = await fetch(API + path, {
       method: 'POST',
