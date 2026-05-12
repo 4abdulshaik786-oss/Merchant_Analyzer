@@ -826,6 +826,35 @@ function splitBanner(str) {
   return { headline: str.trim(), subtext: '' };
 }
 
+function splitWhatsapp(str) {
+  if (!str) {
+    return {
+      h1: '',
+      h2: '',
+      h3: '',
+      s1: '',
+      s2: '',
+      s3: '',
+      h4: '',
+    };
+  }
+
+  const lines = str
+    .split('\n')
+    .map(l => l.trim())
+    .filter(Boolean);
+
+  return {
+    h1: lines[0] || '',
+    h2: lines[1] || '',
+    h3: lines[2] || '',
+    s1: lines[3] || '',
+    s2: lines[4] || '',
+    s3: lines[5] || '',
+    h4: lines[6] || '',
+  };
+}
+
 // ── Helper: transform flat body into the CleverTap-ready nested structure ──
 function structureMerchant(body, savedAt) {
   const push   = splitPush(body.push_notification || '');
@@ -852,11 +881,11 @@ function structureMerchant(body, savedAt) {
       key_insights:     Array.isArray(body.key_insights) ? body.key_insights : [],
     },
 
-    content: {
-      whatsapp: { message: body.whatsapp_message || '' },
-      push:     { title: push.title, body: push.body },
-      banner:   { headline: banner.headline, subtext: banner.subtext },
-    },
+   content: {
+  whatsapp: splitWhatsapp(body.whatsapp_message || ''),
+  push:     { title: push.title, body: push.body },
+  banner:   { headline: banner.headline, subtext: banner.subtext },
+},
 
     meta: {
       status:        body.status        || '',
