@@ -50,14 +50,15 @@ app.use(express.json({ limit: '20mb' }));
 app.use(express.static(path.join(__dirname, '../public')));
 
 // ─── API KEYS (loaded from .env) ─────────────────────────────────────────────
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
-const OPENAI_KEY     = process.env.OPENAI_KEY;
-const OPENAI_MODEL   = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
+const GOOGLE_API_KEY     = process.env.GOOGLE_API_KEY;
+const TRUFOUNDRY_TOKEN   = process.env.TRUFOUNDRY_TOKEN;
+const TRUFOUNDRY_MODEL   = process.env.TRUFOUNDRY_MODEL || 'azure-paytm-east-us/gpt-4.1-mini';
+const TRUFOUNDRY_BASE_URL = process.env.TRUFOUNDRY_BASE_URL || 'https://llm.tfy.pi.mypaytm.com/api/llm/api/inference/openai';
 
-if (!GOOGLE_API_KEY) console.warn('[WARN] GOOGLE_API_KEY missing in .env');
-if (!OPENAI_KEY)     console.warn('[WARN] OPENAI_KEY missing in .env');
+if (!GOOGLE_API_KEY)   console.warn('[WARN] GOOGLE_API_KEY missing in .env');
+if (!TRUFOUNDRY_TOKEN) console.warn('[WARN] TRUFOUNDRY_TOKEN missing in .env');
 
-// ─── Helper: tolerant JSON extraction from any OpenAI response ─────────────
+// ─── Helper: tolerant JSON extraction from any LLM response ───────────────
 function safeExtractJson(raw) {
   if (!raw) return null;
   let s = String(raw).replace(/```json\s*|```\s*/gi, '').trim();
@@ -600,7 +601,7 @@ function sanitizeClassification(parsed) {
 
 // ════════════════════════════════════════════════════════════════════════════
 // MAIN ENDPOINT — /api/generate-copy
-// One LLM call → classification → templated copy across all 3 channels.
+// One LLM call (via TruFoundry) → classification → templated copy across all 3 channels.
 // ════════════════════════════════════════════════════════════════════════════
 
 app.post('/api/generate-copy', async (req, res) => {
@@ -632,20 +633,19 @@ app.post('/api/generate-copy', async (req, res) => {
       ? `Reviews to analyze:\n\n${reviewBlock}`
       : `No review text available — base your output on the rating and review count alone.`);
 
-  console.log(`\n[OPENAI] Classifying ${merchantName} | ★${rating ?? '–'} · ${totalReviews} reviews | ${analyzable.length} review texts`);
+  console.log(`\n[TRUFOUNDRY] Classifying ${merchantName} | ★${rating ?? '–'} · ${totalReviews} reviews | ${analyzable.length} review texts | model=${TRUFOUNDRY_MODEL}`);
 
   try {
-    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+    const r = await fetch(`${TRUFOUNDRY_BASE_URL}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: 'Bearer ' + OPENAI_KEY,
+        Authorization: 'Bearer ' + TRUFOUNDRY_TOKEN,
       },
       body: JSON.stringify({
-        model: OPENAI_MODEL,
+        model: TRUFOUNDRY_MODEL,
         max_tokens: 600,
         temperature: 0.2, // Low — classification needs to be consistent across runs.
-        response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: CLASSIFICATION_SYSTEM_PROMPT },
           { role: 'user', content: userMsg },
@@ -655,18 +655,18 @@ app.post('/api/generate-copy', async (req, res) => {
 
     const data = await r.json();
     if (!r.ok) {
-      console.error('[OPENAI] Classification API error:', data?.error?.message || data);
-      return res.status(r.status).json({ error: data?.error?.message || 'OpenAI request failed' });
+      console.error('[TRUFOUNDRY] Classification API error:', data?.error?.message || JSON.stringify(data));
+      return res.status(r.status).json({ error: data?.error?.message || 'TruFoundry request failed' });
     }
 
     const raw = data.choices?.[0]?.message?.content || '';
     const parsed = safeExtractJson(raw);
     if (!parsed) {
-      console.error('[OPENAI] Classification JSON parse failed. Raw:', raw.slice(0, 400));
-      return res.status(500).json({ error: 'OpenAI returned malformed JSON' });
+      console.error('[TRUFOUNDRY] Classification JSON parse failed. Raw:', raw.slice(0, 400));
+      return res.status(500).json({ error: 'TruFoundry returned malformed JSON' });
     }
 
-    // Defensive sanitization in case mini hallucinates angle/issues.
+    // Defensive sanitization in case model hallucinates angle/issues.
     const classification = sanitizeClassification(parsed);
 
     // Deterministic copy from templates — no second LLM call.
@@ -678,7 +678,7 @@ app.post('/api/generate-copy', async (req, res) => {
       merchantName,
     });
 
-    console.log(`[OPENAI] ${merchantName} → angle=${classification.angle} | issues=[${classification.issues.join(', ')}] | severe=${classification.isSevere}`);
+    console.log(`[TRUFOUNDRY] ${merchantName} → angle=${classification.angle} | issues=[${classification.issues.join(', ')}] | severe=${classification.isSevere}`);
 
     res.json({
       classification,
@@ -691,7 +691,7 @@ app.post('/api/generate-copy', async (req, res) => {
       },
     });
   } catch (e) {
-    console.error('[OPENAI] Classification exception:', e.message);
+    console.error('[TRUFOUNDRY] Classification exception:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
@@ -1070,7 +1070,7 @@ app.listen(PORT, () => {
   console.log('Pipeline:');
   console.log('  POST /api/google/find-place          → Google Places Text Search');
   console.log('  POST /api/google/reviews             → Google Places Details (max 5)');
-  console.log(`  POST /api/generate-copy              → ${OPENAI_MODEL}: classify + generate copy`);
+  console.log(`  POST /api/generate-copy              → TruFoundry (${TRUFOUNDRY_MODEL}): classify + generate copy`);
   console.log('  GET  /api/v1/merchants/:merchant_id  → CleverTap Linked Content');
   console.log('  GET  /api/clevertap/whatsapp         → WhatsApp message');
   console.log('  GET  /api/clevertap/push             → Push notification');
