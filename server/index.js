@@ -453,32 +453,29 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
 
   switch (angle) {
     case 'Negative': {
-      // Severity affects only the prefix.
       whatsappHook = isSevere
         ? `Repeated ${issuePhrase} complaints are pushing customers away.`
         : `${capitalize(issuePhrase)} complaints are pushing customers away.`;
 
-      // Push: shortened, single issue
       pushBody = isSevere
-        ? `Repeated ${issueWord} complaints losing customers? Pi Commerce wins them back. Try Now.`
-        : `${capitalize(issueWord)} complaints losing customers? Pi Commerce wins them back. Try Now.`;
+        ? `Repeated ${issueWord} complaints? Pi Commerce brings you more customers. Try Now.`
+        : `${capitalize(issueWord)} complaints? Pi Commerce brings you more customers. Try Now.`;
 
-      // Banner: tighter, split into headline + subtext
       bannerText = isSevere
         ? `Repeated ${issueWord} complaints?`
-        : `${capitalize(issueWord)} complaints losing customers?`;
-      bannerSub = `Pi Commerce wins your customers back.`;
+        : `${capitalize(issueWord)} complaints?`;
+      bannerSub = `Pi Commerce brings you more customers.`;
 
-      bullet1 = 'Wins back lost customers';
+      bullet1 = 'Brings you more customers';
       break;
     }
 
     case 'Decline': {
-      whatsappHook = 'Customers who once loved you have stopped coming.';
-      pushBody = 'Lost customers stopped coming? Pi Commerce wins them back. Try Now.';
-      bannerText = 'Customers stopped coming?';
-      bannerSub = 'Pi Commerce wins them back.';
-      bullet1 = 'Wins back lost customers';
+      whatsappHook = 'Footfalls not what they used to be?';
+      pushBody = 'Footfalls slowing down? Pi Commerce brings you more customers. Try Now.';
+      bannerText = 'Footfalls slowing down?';
+      bannerSub = 'Pi Commerce brings you more customers.';
+      bullet1 = 'Brings you more customers';
       break;
     }
 
@@ -492,11 +489,11 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
     }
 
     case 'Neutral': {
-      whatsappHook = 'Customers come once and forget you.';
-      pushBody = 'Customers visit once and forget you? Pi Commerce brings them back. Try Now.';
-      bannerText = 'Customers visit once?';
-      bannerSub = 'Pi Commerce brings them back.';
-      bullet1 = 'Brings customers back for repeat visits';
+      whatsappHook = 'Not enough customers walking in?';
+      pushBody = 'Not enough customers? Pi Commerce brings you more. Try Now.';
+      bannerText = 'Want more customers?';
+      bannerSub = 'Pi Commerce brings you more customers.';
+      bullet1 = 'Brings you more customers';
       break;
     }
 
@@ -533,16 +530,16 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
     case 'SilentChurn':
     default: {
       whatsappHook = ratingHigh
-        ? `You're rated ${ratingStr} — but happy customers rarely return on their own.`
-        : `Loved by customers — but few return on their own.`;
+        ? `You're rated ${ratingStr} — but are enough new customers finding you?`
+        : `Loved by customers — but are enough new ones finding you?`;
       pushBody = ratingHigh
-        ? `Rated ${ratingStr} but happy customers rarely return? Pi Commerce brings them back. Try Now.`
-        : `Happy customers rarely return? Pi Commerce brings them back. Try Now.`;
+        ? `Rated ${ratingStr} but want more customers? Pi Commerce brings you more. Try Now.`
+        : `Want more customers? Pi Commerce brings you more. Try Now.`;
       bannerText = ratingHigh
-        ? `Rated ${ratingStr}, but customers rarely return?`
-        : `Happy customers rarely return?`;
-      bannerSub = `Pi Commerce brings them back.`;
-      bullet1 = 'Brings happy customers back';
+        ? `Rated ${ratingStr}, want more customers?`
+        : `Want more customers?`;
+      bannerSub = `Pi Commerce brings you more customers.`;
+      bullet1 = 'Brings you more customers';
       break;
     }
   }
@@ -565,7 +562,6 @@ function buildCopy({ angle, issues, isSevere, rating, merchantName }) {
     },
   };
 }
-
 
 function capitalize(s) {
   if (!s) return s;
