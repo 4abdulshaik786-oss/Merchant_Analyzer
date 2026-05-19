@@ -987,6 +987,19 @@ app.get('/api/batch/export-data', async (req, res) => {
 // ════════════════════════════════════════════════════════════════════════════
 // CLEVERTAP LINKED CONTENT API
 // ════════════════════════════════════════════════════════════════════════════
+// ── API Key Middleware ──────────────────────────────────────────
+const requireApiKey = (req, res, next) => {
+  const key = req.headers['x-api-key'];
+  if (!key || key !== process.env.ACCESS_KEY) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid or missing API key' });
+  }
+  next();
+};
+
+// ── Apply to all CleverTap routes ──────────────────────────────
+app.use('/api/v1/merchants', requireApiKey);
+app.use('/api/clevertap', requireApiKey);
+
 
 async function findMerchant(merchant_id) {
   try {
