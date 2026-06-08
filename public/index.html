@@ -8,549 +8,126 @@
 <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: #f5f5f3;
-    color: #1a1a1a;
-    min-height: 100vh;
-    line-height: 1.5;
-  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; line-height: 1.5; }
   .container { max-width: 880px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
-
   h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.01em; }
   .subtitle { font-size: 14px; color: #666; margin-bottom: 1.75rem; }
-
-  .card {
-    background: #fff;
-    border: 1px solid #e8e8e6;
-    border-radius: 12px;
-    padding: 1.25rem 1.5rem;
-    margin-bottom: 1rem;
-  }
-  .card h2 {
-    font-size: 13px; font-weight: 600; color: #444;
-    margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;
-  }
-
-  label {
-    font-size: 12px; font-weight: 500; color: #555;
-    display: block; margin-bottom: 6px; margin-top: 14px;
-    text-transform: uppercase; letter-spacing: 0.03em;
-  }
+  .card { background: #fff; border: 1px solid #e8e8e6; border-radius: 12px; padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+  .card h2 { font-size: 13px; font-weight: 600; color: #444; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  label { font-size: 12px; font-weight: 500; color: #555; display: block; margin-bottom: 6px; margin-top: 14px; text-transform: uppercase; letter-spacing: 0.03em; }
   label:first-child, .grid label { margin-top: 0; }
-
-  input[type=text], input[type=number], select {
-    width: 100%; padding: 10px 12px;
-    border: 1px solid #ddd; border-radius: 8px;
-    font-size: 14px; color: #1a1a1a;
-    background: #fafaf9; outline: none;
-    transition: border-color 0.15s, background 0.15s;
-    font-family: inherit;
-  }
+  input[type=text], input[type=number], select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; color: #1a1a1a; background: #fafaf9; outline: none; transition: border-color 0.15s, background 0.15s; font-family: inherit; }
   input:focus, select:focus { border-color: #555; background: #fff; }
-  select {
-    appearance: none; -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 10px center;
-    padding-right: 32px;
-  }
-
+  select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 32px; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
   @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
-
   .submit-row { margin-top: 18px; display: flex; align-items: center; gap: 12px; }
-  .run-btn {
-    padding: 11px 26px; font-size: 14px; font-weight: 600;
-    background: #1a1a1a; color: #fff; border: none; border-radius: 8px;
-    cursor: pointer; transition: background 0.15s;
-    font-family: inherit;
-  }
+  .run-btn { padding: 11px 26px; font-size: 14px; font-weight: 600; background: #1a1a1a; color: #fff; border: none; border-radius: 8px; cursor: pointer; transition: background 0.15s; font-family: inherit; }
   .run-btn:hover { background: #333; }
   .run-btn:disabled { background: #aaa; cursor: not-allowed; }
-
-  .google-note {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    color: #475569;
-    font-size: 12px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    margin-top: 10px;
-  }
-
-  /* Steps */
+  .google-note { background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; font-size: 12px; padding: 8px 12px; border-radius: 8px; margin-top: 10px; }
   .steps { padding: 4px 0; }
-  .step {
-    display: flex; gap: 12px; align-items: flex-start;
-    padding: 11px 0; border-bottom: 1px solid #f0f0ee;
-    font-size: 14px; color: #444;
-  }
+  .step { display: flex; gap: 12px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid #f0f0ee; font-size: 14px; color: #444; }
   .step:last-child { border-bottom: none; }
-  .step-icon {
-    width: 22px; height: 22px; flex-shrink: 0;
-    border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 600;
-    background: #ececea; color: #888;
-    margin-top: 1px;
-  }
-  .step.active .step-icon {
-    background: #1a1a1a; color: #fff;
-    animation: pulse 1.2s ease-in-out infinite;
-  }
+  .step-icon { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; background: #ececea; color: #888; margin-top: 1px; }
+  .step.active .step-icon { background: #1a1a1a; color: #fff; animation: pulse 1.2s ease-in-out infinite; }
   .step.done .step-icon { background: #16a34a; color: #fff; }
   .step.error .step-icon { background: #dc2626; color: #fff; }
   .step .step-detail { font-size: 12px; color: #888; margin-top: 2px; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
-
-  /* Place confirmation card */
-  .place-card {
-    background: linear-gradient(135deg, #fff 0%, #fafafa 100%);
-    border: 1px solid #e8e8e6;
-    border-left: 3px solid #4285F4;
-    padding: 14px 18px;
-    border-radius: 10px;
-    margin-bottom: 1rem;
-  }
+  .place-card { background: linear-gradient(135deg, #fff 0%, #fafafa 100%); border: 1px solid #e8e8e6; border-left: 3px solid #4285F4; padding: 14px 18px; border-radius: 10px; margin-bottom: 1rem; }
   .place-card .pname { font-size: 16px; font-weight: 600; color: #1a1a1a; }
   .place-card .paddr { font-size: 13px; color: #666; margin-top: 3px; }
   .place-card .pmeta { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; color: #555; }
   .place-card .pmeta strong { color: #1a1a1a; }
-
-  /* Notice banner */
-  .notice {
-    background: #fffbeb;
-    border: 1px solid #fde68a;
-    color: #78350f;
-    padding: 10px 14px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-bottom: 1rem;
-  }
-
-  /* Results */
+  .notice { background: #fffbeb; border: 1px solid #fde68a; color: #78350f; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 1rem; }
   .results-header { margin-bottom: 16px; }
   .results-header .merchant-name { font-size: 20px; font-weight: 600; color: #1a1a1a; }
   .results-header .merchant-addr { font-size: 13px; color: #666; margin-top: 2px; }
-  .source-badge {
-    display: inline-block; margin-top: 8px;
-    padding: 4px 10px; border-radius: 14px;
-    font-size: 11px; font-weight: 600; letter-spacing: 0.03em;
-    text-transform: uppercase;
-  }
+  .source-badge { display: inline-block; margin-top: 8px; padding: 4px 10px; border-radius: 14px; font-size: 11px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
   .source-badge.google { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-  .chip {
-    background: #f0f0ee; color: #444;
-    padding: 5px 11px; border-radius: 20px;
-    font-size: 12px; font-weight: 500;
-  }
+  .chip { background: #f0f0ee; color: #444; padding: 5px 11px; border-radius: 20px; font-size: 12px; font-weight: 500; }
   .chip.primary { background: #1a1a1a; color: #fff; }
-  .chip.severe   { background: #fee2e2; color: #991b1b; }
-  .chip.issue    { background: #fef3c7; color: #92400e; }
-
-  .summary-box {
-    background: #fdfdfc;
-    border: 1px solid #ececea;
-    padding: 14px 18px;
-    border-radius: 10px;
-    font-size: 14px;
-    color: #2a2a2a;
-    line-height: 1.6;
-    margin-bottom: 1rem;
-  }
-
-  /* ─── Classification card ─── */
-  .classification-card h2 {
-    font-size: 16px; font-weight: 600; color: #1a1a1a;
-    text-transform: none; letter-spacing: 0;
-    margin-bottom: 4px;
-  }
-  .classification-card .cls-sub {
-    font-size: 12px; color: #888; margin-bottom: 14px;
-  }
-  .angle-pill {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 8px 14px; border-radius: 999px;
-    background: #fdfbf7;
-    border: 1px solid #e8e8e6;
-    border-left: 4px solid #888;
-    font-size: 14px; font-weight: 600; color: #1a1a1a;
-  }
-  .angle-pill .angle-tag {
-    font-size: 12px; font-weight: 400; color: #777; font-style: italic;
-  }
-  .cls-meta-row {
-    display: flex; flex-wrap: wrap; gap: 8px;
-    margin-top: 12px;
-  }
-  .cls-meta-row .meta-label {
-    font-size: 11px; font-weight: 600; color: #999;
-    text-transform: uppercase; letter-spacing: 0.04em;
-    margin-right: 6px; display: flex; align-items: center;
-  }
-
-  /* ─── Channel Creative Preview ─── */
-  .channel-card h2 {
-    font-size: 16px; font-weight: 600; color: #1a1a1a;
-    text-transform: none; letter-spacing: 0; margin-bottom: 4px;
-  }
-  .channel-card .ch-sub {
-    font-size: 12px; color: #888; margin-bottom: 14px;
-  }
-  .channel-toggle {
-    display: inline-flex;
-    background: #f0f0ee;
-    border-radius: 10px;
-    padding: 4px;
-    gap: 2px;
-    margin-bottom: 14px;
-  }
-  .channel-toggle button {
-    border: none; background: transparent;
-    padding: 7px 16px;
-    font-size: 13px; font-weight: 500;
-    color: #555;
-    border-radius: 7px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 0.15s, color 0.15s;
-  }
+  .chip.severe { background: #fee2e2; color: #991b1b; }
+  .chip.issue { background: #fef3c7; color: #92400e; }
+  .summary-box { background: #fdfdfc; border: 1px solid #ececea; padding: 14px 18px; border-radius: 10px; font-size: 14px; color: #2a2a2a; line-height: 1.6; margin-bottom: 1rem; }
+  .classification-card h2 { font-size: 16px; font-weight: 600; color: #1a1a1a; text-transform: none; letter-spacing: 0; margin-bottom: 4px; }
+  .classification-card .cls-sub { font-size: 12px; color: #888; margin-bottom: 14px; }
+  .angle-pill { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 999px; background: #fdfbf7; border: 1px solid #e8e8e6; border-left: 4px solid #888; font-size: 14px; font-weight: 600; color: #1a1a1a; }
+  .angle-pill .angle-tag { font-size: 12px; font-weight: 400; color: #777; font-style: italic; }
+  .cls-meta-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .cls-meta-row .meta-label { font-size: 11px; font-weight: 600; color: #999; text-transform: uppercase; letter-spacing: 0.04em; margin-right: 6px; display: flex; align-items: center; }
+  .channel-card h2 { font-size: 16px; font-weight: 600; color: #1a1a1a; text-transform: none; letter-spacing: 0; margin-bottom: 4px; }
+  .channel-card .ch-sub { font-size: 12px; color: #888; margin-bottom: 14px; }
+  .channel-toggle { display: inline-flex; background: #f0f0ee; border-radius: 10px; padding: 4px; gap: 2px; margin-bottom: 14px; }
+  .channel-toggle button { border: none; background: transparent; padding: 7px 16px; font-size: 13px; font-weight: 500; color: #555; border-radius: 7px; cursor: pointer; font-family: inherit; transition: background 0.15s, color 0.15s; }
   .channel-toggle button:hover { color: #1a1a1a; }
-  .channel-toggle button.active {
-    background: #fff; color: #1a1a1a;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    font-weight: 600;
-  }
-
+  .channel-toggle button.active { background: #fff; color: #1a1a1a; box-shadow: 0 1px 3px rgba(0,0,0,0.08); font-weight: 600; }
   .channel-preview { margin-top: 4px; }
-
-  /* WhatsApp preview */
-  .wa-preview {
-    background: #e6dcd0;
-    background-image: linear-gradient(135deg, #e6dcd0 0%, #ddd0c0 100%);
-    padding: 18px;
-    border-radius: 12px;
-    border: 1px solid #d4c4b0;
-  }
-  .wa-bubble {
-    background: #d9fdd3;
-    border-radius: 12px 12px 12px 2px;
-    padding: 10px 14px;
-    max-width: 90%;
-    box-shadow: 0 1px 1px rgba(0,0,0,0.08);
-    position: relative;
-  }
-  .wa-message {
-    font-size: 14px; color: #111;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-family: inherit;
-    line-height: 1.55;
-    margin: 0;
-  }
-  .wa-time {
-    display: block;
-    text-align: right;
-    font-size: 10px; color: #667781;
-    margin-top: 4px;
-  }
-
-  /* Push preview */
-  .push-preview {
-    background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
-    padding: 24px 18px;
-    border-radius: 18px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.18);
-    border: 1px solid #1f2937;
-  }
-  .push-card {
-    background: rgba(255,255,255,0.94);
-    backdrop-filter: blur(20px);
-    border-radius: 14px;
-    padding: 12px 14px;
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-  }
-  .push-icon {
-    width: 38px; height: 38px;
-    border-radius: 9px;
-    background: linear-gradient(135deg, #00B9F1 0%, #002970 100%);
-    color: #fff;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 700; font-size: 14px;
-    flex-shrink: 0;
-  }
+  .wa-preview { background: #e6dcd0; background-image: linear-gradient(135deg, #e6dcd0 0%, #ddd0c0 100%); padding: 18px; border-radius: 12px; border: 1px solid #d4c4b0; }
+  .wa-bubble { background: #d9fdd3; border-radius: 12px 12px 12px 2px; padding: 10px 14px; max-width: 90%; box-shadow: 0 1px 1px rgba(0,0,0,0.08); }
+  .wa-message { font-size: 14px; color: #111; white-space: pre-wrap; word-wrap: break-word; font-family: inherit; line-height: 1.55; margin: 0; }
+  .wa-time { display: block; text-align: right; font-size: 10px; color: #667781; margin-top: 4px; }
+  .push-preview { background: linear-gradient(180deg, #1f2937 0%, #111827 100%); padding: 24px 18px; border-radius: 18px; box-shadow: 0 6px 20px rgba(0,0,0,0.18); border: 1px solid #1f2937; }
+  .push-card { background: rgba(255,255,255,0.94); backdrop-filter: blur(20px); border-radius: 14px; padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; }
+  .push-icon { width: 38px; height: 38px; border-radius: 9px; background: linear-gradient(135deg, #00B9F1 0%, #002970 100%); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
   .push-content { flex: 1; min-width: 0; }
-  .push-app {
-    font-size: 11px; font-weight: 500; color: #6b7280;
-    margin-bottom: 2px;
-    text-transform: uppercase; letter-spacing: 0.04em;
-    display: flex; justify-content: space-between;
-  }
-  .push-title {
-    font-size: 14px; font-weight: 600; color: #111;
-    line-height: 1.3; margin-bottom: 2px;
-  }
-  .push-body {
-    font-size: 13px; color: #444; line-height: 1.4;
-  }
-
-  /* Banner preview */
-  .banner-preview {
-    background: linear-gradient(135deg, #002970 0%, #00B9F1 100%);
-    border-radius: 12px;
-    padding: 18px 22px;
-    color: #fff;
-    display: flex; justify-content: space-between; align-items: center;
-    gap: 16px; flex-wrap: wrap;
-    box-shadow: 0 4px 14px rgba(0, 41, 112, 0.18);
-  }
-  .banner-text {
-    flex: 1; min-width: 200px;
-    display: flex; flex-direction: column; gap: 2px;
-  }
-  .banner-line {
-    font-size: 15px; font-weight: 600; line-height: 1.35;
-  }
-  .banner-sub {
-    font-size: 13px; font-weight: 400; line-height: 1.35;
-    opacity: 0.92;
-  }
-  .banner-cta {
-    background: #fff; color: #002970;
-    border: none;
-    padding: 9px 20px; border-radius: 8px;
-    font-size: 13px; font-weight: 600;
-    cursor: default;
-    font-family: inherit;
-    white-space: nowrap;
-  }
-
-  /* Section skeleton (reuses shimmer keyframe) */
-  .section-skeleton {
-    display: flex; flex-direction: column; gap: 10px;
-    margin-top: 10px;
-  }
-  .section-skeleton .skeleton-line { margin-bottom: 0; }
-  .section-skeleton .skeleton-line:nth-child(1) { width: 96%; }
-  .section-skeleton .skeleton-line:nth-child(2) { width: 78%; }
-  .section-skeleton .skeleton-line:nth-child(3) { width: 88%; }
-  .section-skeleton .skeleton-line:nth-child(4) { width: 65%; }
-
-  .err-box {
-    background: #fef2f2; border: 1px solid #fecaca;
-    color: #991b1b; padding: 12px 14px;
-    border-radius: 8px; font-size: 13px; margin-top: 12px;
-  }
-
-  /* ─── Shared loading + error styles ─── */
-  .skeleton-line {
-    height: 12px; background: linear-gradient(90deg, #ececea 0%, #f5f5f3 50%, #ececea 100%);
-    background-size: 200% 100%;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    animation: shimmer 1.4s ease-in-out infinite;
-  }
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-
-  .msg-error {
-    background: #fef2f2; border: 1px solid #fecaca;
-    color: #991b1b; padding: 14px 16px;
-    border-radius: 10px; font-size: 13px;
-    display: flex; justify-content: space-between; align-items: center; gap: 12px;
-    margin-top: 14px;
-  }
-  .retry-btn {
-    background: #fff; color: #991b1b;
-    border: 1px solid #fca5a5; border-radius: 6px;
-    padding: 6px 14px; font-size: 12px; font-weight: 600;
-    cursor: pointer; font-family: inherit;
-  }
-  .retry-btn:hover { background: #fee2e2; }
-
+  .push-app { font-size: 11px; font-weight: 500; color: #6b7280; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.04em; display: flex; justify-content: space-between; }
+  .push-title { font-size: 14px; font-weight: 600; color: #111; line-height: 1.3; margin-bottom: 2px; }
+  .push-body { font-size: 13px; color: #444; line-height: 1.4; }
+  .banner-preview { background: linear-gradient(135deg, #002970 0%, #00B9F1 100%); border-radius: 12px; padding: 18px 22px; color: #fff; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; box-shadow: 0 4px 14px rgba(0,41,112,0.18); }
+  .banner-text { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 2px; }
+  .banner-line { font-size: 15px; font-weight: 600; line-height: 1.35; }
+  .banner-sub { font-size: 13px; font-weight: 400; line-height: 1.35; opacity: 0.92; }
+  .banner-cta { background: #fff; color: #002970; border: none; padding: 9px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: default; font-family: inherit; white-space: nowrap; }
+  .err-box { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 12px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; }
+  .skeleton-line { height: 12px; background: linear-gradient(90deg, #ececea 0%, #f5f5f3 50%, #ececea 100%); background-size: 200% 100%; border-radius: 4px; margin-bottom: 10px; animation: shimmer 1.4s ease-in-out infinite; }
+  @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
   .hidden { display: none !important; }
-
-  /* ─── MODE TOGGLE ──────────────────────────────────────────────── */
-  .mode-toggle {
-    display: flex; gap: 6px;
-    margin-bottom: 1.5rem;
-  }
-  .mode-toggle button {
-    padding: 8px 20px; font-size: 13px; font-weight: 600;
-    border: none; border-radius: 20px; cursor: pointer;
-    font-family: inherit; transition: background 0.15s, color 0.15s;
-  }
+  .mode-toggle { display: flex; gap: 6px; margin-bottom: 1.5rem; }
+  .mode-toggle button { padding: 8px 20px; font-size: 13px; font-weight: 600; border: none; border-radius: 20px; cursor: pointer; font-family: inherit; transition: background 0.15s, color 0.15s; }
   .mode-toggle button.active { background: #1a1a1a; color: #fff; }
   .mode-toggle button:not(.active) { background: #f0f0f0; color: #444; }
-
-  /* ─── FILE UPLOAD AREA ─────────────────────────────────────────── */
-  #upload-area {
-    border: 2px dashed #CCCCCC; border-radius: 10px; background: #FAFAF9;
-    min-height: 130px; display: flex; align-items: center; justify-content: center;
-    text-align: center; cursor: pointer; margin-bottom: 16px; padding: 20px;
-    transition: all 0.2s ease;
-  }
-  #upload-area:hover, #upload-area.drag-over {
-    border-color: #003580; background: #F0F4FF;
-  }
-  #upload-area.file-loaded {
-    border: 2px solid #22C55E; background: #F0FDF4;
-  }
-
-  /* ─── CSV PREVIEW TABLE ────────────────────────────────────────── */
-  .batch-table-wrap { overflow-x: auto; margin-bottom: 10px; }
-  .batch-table {
-    width: 100%; border-collapse: collapse;
-    font-size: 13px;
-  }
-  .batch-table th {
-    background: #f5f5f3; font-weight: 600;
-    text-align: left; padding: 8px 12px;
-    border-bottom: 2px solid #e8e8e6;
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #555;
-  }
-  .batch-table td {
-    padding: 8px 12px; border-bottom: 1px solid #f0f0ee;
-    vertical-align: middle;
-  }
+  #upload-area { border: 2px dashed #CCCCCC; border-radius: 10px; background: #FAFAF9; min-height: 130px; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; margin-bottom: 16px; padding: 20px; transition: all 0.2s ease; }
+  #upload-area:hover, #upload-area.drag-over { border-color: #003580; background: #F0F4FF; }
+  #upload-area.file-loaded { border: 2px solid #22C55E; background: #F0FDF4; }
+  .batch-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .batch-table th { background: #f5f5f3; font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid #e8e8e6; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #555; }
+  .batch-table td { padding: 8px 12px; border-bottom: 1px solid #f0f0ee; vertical-align: middle; }
   .batch-table tr.processing { background: #fffbeb; }
-  .batch-table tr.done       { background: #f0fdf4; }
-  .batch-table tr.failed     { background: #fef2f2; }
-  .batch-row-status {
-    display: inline-block; padding: 2px 10px;
-    border-radius: 10px; font-size: 11px; font-weight: 600;
-  }
-  .batch-row-status.pending    { background: #f0f0f0; color: #666; }
+  .batch-table tr.done { background: #f0fdf4; }
+  .batch-table tr.failed { background: #fef2f2; }
+  .batch-row-status { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .batch-row-status.pending { background: #f0f0f0; color: #666; }
   .batch-row-status.processing { background: #fef3c7; color: #92400e; }
-  .batch-row-status.done       { background: #dcfce7; color: #166534; }
-  .batch-row-status.failed     { background: #fee2e2; color: #991b1b; }
-
-  .batch-count { font-size: 13px; color: #666; margin-bottom: 14px; }
-
-  /* ─── CONTROL BAR ──────────────────────────────────────────────── */
+  .batch-row-status.done { background: #dcfce7; color: #166534; }
+  .batch-row-status.failed { background: #fee2e2; color: #991b1b; }
   .batch-control-bar { margin-bottom: 14px; }
-  .batch-start-btn {
-    width: 100%; padding: 12px; font-size: 15px; font-weight: 700;
-    background: #1a1a1a; color: #fff; border: none; border-radius: 10px;
-    cursor: pointer; font-family: inherit; transition: background 0.15s;
-  }
+  .batch-start-btn { width: 100%; padding: 12px; font-size: 15px; font-weight: 700; background: #1a1a1a; color: #fff; border: none; border-radius: 10px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
   .batch-start-btn:hover:not(:disabled) { background: #333; }
   .batch-start-btn:disabled { background: #aaa; cursor: not-allowed; }
-  .batch-control-mid {
-    display: flex; align-items: center; gap: 10px;
-    margin-top: 8px;
-  }
-  .batch-ctrl-btn {
-    padding: 7px 18px; font-size: 13px; font-weight: 600;
-    border: 1px solid #ddd; border-radius: 8px;
-    background: #fff; cursor: pointer; font-family: inherit;
-    transition: background 0.15s;
-  }
+  .batch-control-mid { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .batch-ctrl-btn { padding: 7px 18px; font-size: 13px; font-weight: 600; border: 1px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-family: inherit; transition: background 0.15s; }
   .batch-ctrl-btn:hover { background: #f5f5f3; }
   .batch-ctrl-btn.danger { border-color: #fca5a5; color: #991b1b; }
   .batch-ctrl-btn.danger:hover { background: #fef2f2; }
   .batch-queued-label { font-size: 13px; color: #666; margin-top: 6px; }
-
-  /* ─── PROGRESS BAR ─────────────────────────────────────────────── */
   .batch-progress-wrap { margin-bottom: 14px; }
-  .batch-progress-track {
-    height: 8px; background: #e8e8e6; border-radius: 4px; overflow: hidden;
-    margin-bottom: 6px;
-  }
-  .batch-progress-fill {
-    height: 100%; background: #003580; border-radius: 4px;
-    transition: width 0.4s ease;
-    width: 0%;
-  }
+  .batch-progress-track { height: 8px; background: #e8e8e6; border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+  .batch-progress-fill { height: 100%; background: #003580; border-radius: 4px; transition: width 0.4s ease; width: 0%; }
   .batch-progress-label { font-size: 12px; color: #666; }
-
-  /* ─── CURRENT MERCHANT PANEL ───────────────────────────────────── */
-  .batch-current-panel {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 18px;
-    margin-bottom: 14px;
-  }
+  .batch-current-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 14px; }
   @media (max-width: 600px) { .batch-current-panel { grid-template-columns: 1fr; } }
-  .batch-fields-col h3, .batch-steps-col h3 {
-    font-size: 12px; font-weight: 600; color: #555;
-    text-transform: uppercase; letter-spacing: 0.05em;
-    margin-bottom: 10px;
-  }
+  .batch-fields-col h3, .batch-steps-col h3 { font-size: 12px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
   .batch-field-row { margin-bottom: 10px; }
-  .batch-field-row label {
-    font-size: 11px; font-weight: 500; color: #888;
-    display: block; margin-bottom: 3px;
-    text-transform: uppercase; letter-spacing: 0.03em;
-  }
-  .batch-field-row input {
-    width: 100%; padding: 7px 10px;
-    border: 1px solid #ddd; border-radius: 6px;
-    font-size: 13px; color: #1a1a1a;
-    background: #fafaf9; font-family: inherit;
-    pointer-events: none; outline: none;
-  }
-
-  /* ─── ACCORDION ─────────────────────────────────────────────────── */
-  .accordion-section { margin-top: 4px; }
-  .accordion-section h3 {
-    font-size: 12px; font-weight: 600; color: #555;
-    text-transform: uppercase; letter-spacing: 0.05em;
-    margin-bottom: 10px;
-  }
-  .accordion-item {
-    border: 1px solid #e8e8e6; border-radius: 10px;
-    margin-bottom: 6px; overflow: hidden;
-  }
-  .accordion-header {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 14px; cursor: pointer;
-    background: #fafaf9; font-size: 13px;
-    user-select: none; transition: background 0.15s;
-  }
-  .accordion-header:hover { background: #f5f5f3; }
-  .accordion-status-icon { font-size: 15px; flex-shrink: 0; }
-  .accordion-title { flex: 1; font-weight: 600; }
-  .accordion-meta  { font-size: 12px; color: #888; }
-  .accordion-chevron { font-size: 10px; color: #aaa; transition: transform 0.2s; }
-  .accordion-item.open .accordion-chevron { transform: rotate(180deg); }
-  .accordion-body {
-    display: none; padding: 14px;
-    border-top: 1px solid #e8e8e6; background: #fff;
-  }
-  .accordion-item.open .accordion-body { display: block; }
-  .accordion-error { font-size: 13px; color: #991b1b; }
-  .accordion-copy-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
-    margin-top: 10px;
-  }
+  .batch-field-row label { font-size: 11px; font-weight: 500; color: #888; display: block; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .batch-field-row input { width: 100%; padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; color: #1a1a1a; background: #fafaf9; font-family: inherit; pointer-events: none; outline: none; }
+  .accordion-copy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 10px; }
   @media (max-width: 600px) { .accordion-copy-grid { grid-template-columns: 1fr; } }
   .accordion-copy-cell { border: 1px solid #e8e8e6; border-radius: 8px; overflow: hidden; }
-  .accordion-copy-label {
-    font-size: 11px; font-weight: 600; color: #666;
-    text-transform: uppercase; letter-spacing: 0.04em;
-    padding: 6px 10px; background: #f5f5f3; border-bottom: 1px solid #e8e8e6;
-  }
+  .accordion-copy-label { font-size: 11px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 0.04em; padding: 6px 10px; background: #f5f5f3; border-bottom: 1px solid #e8e8e6; }
   .accordion-copy-body { padding: 10px; font-size: 12px; color: #333; white-space: pre-wrap; line-height: 1.5; }
-
-  /* ─── BATCH COMPLETE BANNER ─────────────────────────────────────── */
-  .batch-complete-banner {
-    background: #f0fdf4; border: 1px solid #86efac;
-    border-radius: 10px; padding: 16px 20px;
-    display: flex; justify-content: space-between; align-items: center;
-    flex-wrap: wrap; gap: 12px; margin-bottom: 14px;
-  }
-  .batch-complete-banner .bc-text { font-size: 14px; font-weight: 600; color: #166534; }
-  .batch-complete-banner .bc-sub  { font-size: 12px; color: #4ade80; margin-top: 2px; }
-  .pdf-btn {
-    padding: 9px 20px; font-size: 13px; font-weight: 600;
-    background: #003580; color: #fff; border: none; border-radius: 8px;
-    cursor: pointer; font-family: inherit;
-  }
-  .pdf-btn:hover { background: #00275e; }
 </style>
 </head>
 <body>
@@ -558,151 +135,158 @@
   <h1>Pi Commerce Merchant Analyzer</h1>
   <p class="subtitle">Find a business → fetch reviews → classify into a Pi Commerce angle → generate WhatsApp / Push / Banner copy.</p>
 
-  <!-- ─── MODE TOGGLE ─────────────────────────────────────────────── -->
   <div class="mode-toggle">
     <button id="modeManual" class="active" onclick="switchMode('manual')">Manual Entry</button>
-    <button id="modeBatch"  onclick="switchMode('batch')">Batch from CSV</button>
+    <button id="modeBatch" onclick="switchMode('batch')">Batch from CSV</button>
   </div>
 
-  <!-- ─── MANUAL MODE wrapper ─────────────────────────────────────── -->
+  <!-- MANUAL MODE -->
   <div id="manualSection">
+    <div class="card" id="formCard">
+      <h2>Business Details</h2>
+      <form id="form">
 
-  <!-- ─── INPUT FORM ──────────────────────────────────────────────── -->
-  <div class="card" id="formCard">
-    <h2>Business Details</h2>
-    <form id="form">
-      <div>
-        <label for="businessName">Business name and address</label>
-        <input id="businessName" type="text" required placeholder="e.g. Bon Amigos Cafe, Sector 76, Noida" />
-      </div>
+        <!-- Phone: optional, searched first -->
+        <div>
+          <label for="businessPhone">
+            Phone Number
+            <span style="color:#999;font-weight:400;text-transform:none;font-size:11px;">(optional — searched first if provided)</span>
+          </label>
+          <input id="businessPhone" type="text" placeholder="e.g. 9876543210 or +91 98765 43210" />
+        </div>
 
-      <div>
-        <label for="sortOrder" style="margin-top: 14px;">Sort reviews by</label>
-        <select id="sortOrder">
-          <option value="most_relevant">Most Relevant</option>
-          <option value="newest">Newest First</option>
-        </select>
-      </div>
+        <!-- Name: optional fallback -->
+        <div>
+          <label for="businessName">
+            Business Name
+            <span style="color:#999;font-weight:400;text-transform:none;font-size:11px;">(optional — fallback if phone search fails)</span>
+          </label>
+          <input id="businessName" type="text" placeholder="e.g. Bon Amigos Cafe, Sector 76, Noida" />
+        </div>
 
-      <div class="google-note">
-        Google Places API returns a maximum of 5 reviews per place.
-      </div>
+        <!-- Lat / Long: optional pair, tightens location bias -->
+        <div class="grid">
+          <div>
+            <label for="manualLat">
+              Latitude
+              <span style="color:#999;font-weight:400;text-transform:none;font-size:11px;">(optional)</span>
+            </label>
+            <input id="manualLat" type="text" placeholder="e.g. 28.6139" />
+          </div>
+          <div>
+            <label for="manualLng">
+              Longitude
+              <span style="color:#999;font-weight:400;text-transform:none;font-size:11px;">(optional)</span>
+            </label>
+            <input id="manualLng" type="text" placeholder="e.g. 77.2090" />
+          </div>
+        </div>
 
-      <div class="submit-row">
-        <button type="submit" class="run-btn" id="runBtn">Analyze Merchant →</button>
-        <span id="formError" style="font-size:13px;color:#dc2626;"></span>
-      </div>
-    </form>
-  </div>
+        <div>
+          <label for="sortOrder" style="margin-top:14px;">Sort reviews by</label>
+          <select id="sortOrder">
+            <option value="most_relevant">Most Relevant</option>
+            <option value="newest">Newest First</option>
+          </select>
+        </div>
 
-  <!-- ─── PIPELINE STEPS ──────────────────────────────────────────── -->
-  <div class="card hidden" id="stepsCard">
-    <h2 id="stepsHeading">Pipeline</h2>
-    <div class="steps" id="stepsContainer"></div>
-    <div class="err-box hidden" id="errBox"></div>
-  </div>
+        <div class="google-note">
+          Google Places API returns a maximum of 5 reviews per place.
+          Providing latitude + longitude narrows results to the right area.
+        </div>
 
-  <!-- ─── PLACE CONFIRMATION ──────────────────────────────────────── -->
-  <div class="hidden" id="placeWrap">
-    <div class="place-card" id="placeCard"></div>
-  </div>
-
-  <!-- ─── NOTICE BANNER ──────────────────────────────────────────── -->
-  <div class="notice hidden" id="noticeBanner"></div>
-
-  <!-- ─── RESULTS ────────────────────────────────────────────────── -->
-  <div class="hidden" id="resultsWrap">
-
-    <div class="card">
-      <div class="results-header">
-        <div class="merchant-name" id="resName"></div>
-        <div class="merchant-addr" id="resAddr"></div>
-        <div id="sourceBadgeWrap"></div>
-        <div class="chips" id="resChips"></div>
-      </div>
-      <div class="summary-box" id="resSummary"></div>
+        <div class="submit-row">
+          <button type="submit" class="run-btn" id="runBtn">Analyze Merchant →</button>
+          <span id="formError" style="font-size:13px;color:#dc2626;"></span>
+        </div>
+      </form>
     </div>
 
-    <!-- ─── SECTION 1: CLASSIFICATION DETAILS ───────────────────────── -->
-    <div class="card classification-card" id="classificationCard">
-      <h2>Pi Commerce Classification</h2>
-      <div class="cls-sub">Angle, severity, and detected issues from this merchant's reviews.</div>
-      <div id="classificationBody"></div>
+    <div class="card hidden" id="stepsCard">
+      <h2 id="stepsHeading">Pipeline</h2>
+      <div class="steps" id="stepsContainer"></div>
+      <div class="err-box hidden" id="errBox"></div>
     </div>
 
-    <!-- ─── SECTION 2: CHANNEL CREATIVE PREVIEW ──────────────────── -->
-    <div class="card channel-card" id="channelCard">
-      <h2>Channel Creative Preview</h2>
-      <div class="ch-sub">Personalised copy for this merchant — generated from the classification above.</div>
+    <div class="hidden" id="placeWrap">
+      <div class="place-card" id="placeCard"></div>
+    </div>
 
-      <div class="channel-toggle" role="tablist">
-        <button type="button" data-channel="whatsapp" class="active">WhatsApp</button>
-        <button type="button" data-channel="push">Push</button>
-        <button type="button" data-channel="banner">Banner</button>
+    <div class="notice hidden" id="noticeBanner"></div>
+
+    <div class="hidden" id="resultsWrap">
+      <div class="card">
+        <div class="results-header">
+          <div class="merchant-name" id="resName"></div>
+          <div class="merchant-addr" id="resAddr"></div>
+          <div id="sourceBadgeWrap"></div>
+          <div class="chips" id="resChips"></div>
+        </div>
+        <div class="summary-box" id="resSummary"></div>
       </div>
-
-      <div class="channel-preview" id="channelPreview">
-        <div id="channelRendered"></div>
+      <div class="card classification-card" id="classificationCard">
+        <h2>Pi Commerce Classification</h2>
+        <div class="cls-sub">Angle, severity, and detected issues from this merchant's reviews.</div>
+        <div id="classificationBody"></div>
+      </div>
+      <div class="card channel-card" id="channelCard">
+        <h2>Channel Creative Preview</h2>
+        <div class="ch-sub">Personalised copy for this merchant — generated from the classification above.</div>
+        <div class="channel-toggle" role="tablist">
+          <button type="button" data-channel="whatsapp" class="active">WhatsApp</button>
+          <button type="button" data-channel="push">Push</button>
+          <button type="button" data-channel="banner">Banner</button>
+        </div>
+        <div class="channel-preview" id="channelPreview">
+          <div id="channelRendered"></div>
+        </div>
       </div>
     </div>
-  </div>
-
   </div><!-- end #manualSection -->
 
-  <!-- ═══════════════════════════════════════════════════════════════ -->
-  <!-- BATCH MODE SECTION                                              -->
-  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- BATCH MODE -->
   <div id="batchSection" class="hidden">
 
-    <!-- File upload area -->
     <div id="upload-area"
          onclick="document.getElementById('csv-file-input').click()"
-         ondragover="event.preventDefault(); this.classList.add('drag-over')"
+         ondragover="event.preventDefault();this.classList.add('drag-over')"
          ondragleave="this.classList.remove('drag-over')"
          ondrop="handleFileDrop(event)">
       <div id="upload-placeholder">
         <div style="font-size:32px">📁</div>
-        <div style="font-weight:600; margin-top:8px">Drop your CSV or Excel file here</div>
-        <div style="color:#888; font-size:13px; margin-top:4px">or click to browse</div>
-        <div style="color:#aaa; font-size:12px; margin-top:8px">Supported: .csv · .xlsx · .xls</div>
+        <div style="font-weight:600;margin-top:8px">Drop your CSV or Excel file here</div>
+        <div style="color:#888;font-size:13px;margin-top:4px">or click to browse</div>
+        <div style="color:#aaa;font-size:12px;margin-top:8px">Required: merchant_id, phone, latitude, longitude &nbsp;·&nbsp; Optional: name</div>
       </div>
       <div id="upload-success" style="display:none">
-        <div style="color:#16A34A; font-size:24px">✓</div>
+        <div style="color:#16A34A;font-size:24px">✓</div>
         <div id="upload-filename" style="font-weight:600"></div>
-        <div id="upload-rowcount" style="color:#666; font-size:13px"></div>
-        <span id="upload-remove"
-              onclick="event.stopPropagation(); removeUploadedFile()"
-              style="color:#999; font-size:12px; cursor:pointer; text-decoration:underline; margin-top:4px; display:block">
-          × Remove and re-upload
-        </span>
+        <div id="upload-rowcount" style="color:#666;font-size:13px"></div>
+        <span id="upload-remove" onclick="event.stopPropagation();removeUploadedFile()" style="color:#999;font-size:12px;cursor:pointer;text-decoration:underline;margin-top:4px;display:block">× Remove and re-upload</span>
       </div>
     </div>
     <input type="file" id="csv-file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileSelect(event)" />
 
-    <!-- Upload preview table (first 5 rows) -->
-    <div id="preview-table-section" style="display:none; margin-bottom:16px;">
-      <table style="width:100%; border-collapse:collapse; border:1px solid #e8e8e6; border-radius:8px; overflow:hidden; font-family:inherit;">
+    <div id="preview-table-section" style="display:none;margin-bottom:16px;">
+      <table style="width:100%;border-collapse:collapse;border:1px solid #e8e8e6;border-radius:8px;overflow:hidden;font-family:inherit;">
         <thead>
           <tr style="background:#003580;">
-            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">#</th>
-            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">Merchant ID</th>
-            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">Business Name</th>
-            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">Latitude</th>
-            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">Longitude</th>
-            <th style="padding:10px 12px; color:#fff; font-size:13px; text-align:left; font-weight:600;">Status</th>
+            <th style="padding:10px 12px;color:#fff;font-size:13px;text-align:left;font-weight:600;">#</th>
+            <th style="padding:10px 12px;color:#fff;font-size:13px;text-align:left;font-weight:600;">Merchant ID</th>
+            <th style="padding:10px 12px;color:#fff;font-size:13px;text-align:left;font-weight:600;">Phone</th>
+            <th style="padding:10px 12px;color:#fff;font-size:13px;text-align:left;font-weight:600;">Business Name</th>
+            <th style="padding:10px 12px;color:#fff;font-size:13px;text-align:left;font-weight:600;">Latitude</th>
+            <th style="padding:10px 12px;color:#fff;font-size:13px;text-align:left;font-weight:600;">Longitude</th>
+            <th style="padding:10px 12px;color:#fff;font-size:13px;text-align:left;font-weight:600;">Status</th>
           </tr>
         </thead>
         <tbody id="preview-tbody"></tbody>
       </table>
-      <p id="preview-count-label" style="font-size:12px; color:#888; margin-top:6px;"></p>
+      <p id="preview-count-label" style="font-size:12px;color:#888;margin-top:6px;"></p>
     </div>
 
-    <!-- Hidden processing-status table (used by renderBatchTable/setBatchRowStatus) -->
-    <div style="display:none">
-      <table><tbody id="batchTableBody"></tbody></table>
-    </div>
+    <div style="display:none"><table><tbody id="batchTableBody"></tbody></table></div>
 
-    <!-- Control bar -->
     <div class="card batch-control-bar">
       <div id="batchStartRow">
         <button class="batch-start-btn" id="batchStartBtn" onclick="startBatch()" disabled title="Upload a file to begin">Start Batch Analysis →</button>
@@ -719,12 +303,12 @@
       </div>
     </div>
 
-    <!-- Current merchant panel -->
     <div class="card hidden" id="batchCurrentCard">
       <h2>Currently Processing</h2>
       <div class="batch-current-panel">
         <div class="batch-fields-col">
           <h3>Merchant Details</h3>
+          <div class="batch-field-row"><label>Phone Number</label><input id="batch-phone" type="text" readonly /></div>
           <div class="batch-field-row"><label>Business Name</label><input id="batch-name" type="text" readonly /></div>
           <div class="batch-field-row"><label>Merchant ID</label><input id="batch-id" type="text" readonly /></div>
           <div class="batch-field-row"><label>Latitude</label><input id="batch-lat" type="text" readonly /></div>
@@ -737,1384 +321,701 @@
       </div>
     </div>
 
-    <!-- Latest result label + live results + note (CHANGE 5) -->
-    <div id="current-result-label"
-         style="display:none; font-size:12px; color:#888; margin-bottom:8px; margin-top:16px;">
-      Latest result — Merchant
-      <span id="current-result-n"></span> of
-      <span id="current-result-total"></span>:
-      <strong id="current-result-name"></strong>
+    <div id="current-result-label" style="display:none;font-size:12px;color:#888;margin-bottom:8px;margin-top:16px;">
+      Latest result — Merchant <span id="current-result-n"></span> of <span id="current-result-total"></span>: <strong id="current-result-name"></strong>
     </div>
-    <div id="current-result-container">
-      <div id="batchResultsArea"></div>
-    </div>
-    <div id="current-result-note"
-         style="display:none; text-align:center; margin-top:8px; font-size:12px; color:#aaa;">
-      Scroll down to see all completed merchants ↓
-    </div>
+    <div id="current-result-container"><div id="batchResultsArea"></div></div>
+    <div id="current-result-note" style="display:none;text-align:center;margin-top:8px;font-size:12px;color:#aaa;">Scroll down to see all completed merchants ↓</div>
 
-    <!-- Completed merchants paginated table (CHANGE 4) -->
-    <div id="completed-table-section" style="display:none; margin-top:24px;">
-      <div id="completed-stats-bar"
-           style="display:flex; gap:16px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
-        <span style="font-size:13px; font-weight:600; color:#1a1a1a;">COMPLETED MERCHANTS</span>
-        <span id="stat-done"   style="font-size:13px; color:#16A34A;">✓ 0 Done</span>
-        <span id="stat-failed" style="font-size:13px; color:#DC2626;">✗ 0 Failed</span>
-        <span id="stat-total"  style="font-size:13px; color:#888;">Total: 0</span>
+    <div id="completed-table-section" style="display:none;margin-top:24px;">
+      <div id="completed-stats-bar" style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:13px;font-weight:600;color:#1a1a1a;">COMPLETED MERCHANTS</span>
+        <span id="stat-done" style="font-size:13px;color:#16A34A;">✓ 0 Done</span>
+        <span id="stat-failed" style="font-size:13px;color:#DC2626;">✗ 0 Failed</span>
+        <span id="stat-total" style="font-size:13px;color:#888;">Total: 0</span>
       </div>
-      <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
-        <input type="text" id="table-search"
-               placeholder="Search by name or merchant ID..."
-               oninput="debounceSearch()"
-               style="flex:1; min-width:200px; padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; outline:none;" />
-        <select id="filter-cohort" onchange="applyFilters()"
-                style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; background:#fff; min-width:160px;">
-          <option value="">All Cohorts</option>
-        </select>
-        <select id="filter-status" onchange="applyFilters()"
-                style="padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:13px; background:#fff;">
-          <option value="">All Status</option>
-          <option value="success">✓ Done</option>
-          <option value="failed">✗ Failed</option>
-        </select>
-        <span id="clear-filters-btn" onclick="clearFilters()"
-              style="display:none; padding:8px 12px; color:#003580; cursor:pointer; font-size:13px; text-decoration:underline; align-self:center;">
-          Clear filters ×
-        </span>
+      <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+        <input type="text" id="table-search" placeholder="Search by name or merchant ID..." oninput="debounceSearch()" style="flex:1;min-width:200px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;" />
+        <select id="filter-cohort" onchange="applyFilters()" style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;min-width:160px;"><option value="">All Cohorts</option></select>
+        <select id="filter-status" onchange="applyFilters()" style="padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;background:#fff;"><option value="">All Status</option><option value="success">✓ Done</option><option value="failed">✗ Failed</option></select>
+        <span id="clear-filters-btn" onclick="clearFilters()" style="display:none;padding:8px 12px;color:#003580;cursor:pointer;font-size:13px;text-decoration:underline;align-self:center;">Clear filters ×</span>
       </div>
-      <div style="border:1px solid #e8e8e6; border-radius:10px; overflow:hidden;">
-        <table style="width:100%; border-collapse:collapse; font-family:inherit;">
+      <div style="border:1px solid #e8e8e6;border-radius:10px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-family:inherit;">
           <thead>
             <tr style="background:#003580;">
-              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:40px;">#</th>
-              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:80px;">ID</th>
-              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600;">Business Name</th>
-              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:140px;">Cohort</th>
-              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:70px;">Rating</th>
-              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:80px;">Status</th>
-              <th style="padding:10px 12px; color:#fff; font-size:12px; text-align:left; font-weight:600; width:90px;">Actions</th>
+              <th style="padding:10px 12px;color:#fff;font-size:12px;text-align:left;font-weight:600;width:40px;">#</th>
+              <th style="padding:10px 12px;color:#fff;font-size:12px;text-align:left;font-weight:600;width:80px;">ID</th>
+              <th style="padding:10px 12px;color:#fff;font-size:12px;text-align:left;font-weight:600;">Business Name</th>
+              <th style="padding:10px 12px;color:#fff;font-size:12px;text-align:left;font-weight:600;width:140px;">Cohort</th>
+              <th style="padding:10px 12px;color:#fff;font-size:12px;text-align:left;font-weight:600;width:70px;">Rating</th>
+              <th style="padding:10px 12px;color:#fff;font-size:12px;text-align:left;font-weight:600;width:80px;">Status</th>
+              <th style="padding:10px 12px;color:#fff;font-size:12px;text-align:left;font-weight:600;width:90px;">Actions</th>
             </tr>
           </thead>
           <tbody id="completed-tbody"></tbody>
         </table>
       </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px; flex-wrap:wrap; gap:8px;">
-        <span id="pagination-info" style="font-size:13px; color:#888;"></span>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <button id="prev-page-btn" onclick="changePage(-1)"
-                  style="padding:6px 14px; border:1px solid #ddd; border-radius:6px; font-size:13px; cursor:pointer; background:#fff;">
-            ← Previous
-          </button>
-          <span id="page-indicator" style="font-size:13px; color:#333;"></span>
-          <button id="next-page-btn" onclick="changePage(1)"
-                  style="padding:6px 14px; border:1px solid #ddd; border-radius:6px; font-size:13px; cursor:pointer; background:#fff;">
-            Next →
-          </button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;gap:8px;">
+        <span id="pagination-info" style="font-size:13px;color:#888;"></span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button id="prev-page-btn" onclick="changePage(-1)" style="padding:6px 14px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;background:#fff;">← Previous</button>
+          <span id="page-indicator" style="font-size:13px;color:#333;"></span>
+          <button id="next-page-btn" onclick="changePage(1)" style="padding:6px 14px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;background:#fff;">Next →</button>
         </div>
-        <span id="new-results-badge" onclick="goToLastPage()"
-              style="display:none; background:#003580; color:#fff; font-size:12px; padding:4px 12px; border-radius:99px; cursor:pointer;">
-          ↓ New results
-        </span>
+        <span id="new-results-badge" onclick="goToLastPage()" style="display:none;background:#003580;color:#fff;font-size:12px;padding:4px 12px;border-radius:99px;cursor:pointer;">↓ New results</span>
       </div>
     </div>
 
-    <!-- Batch complete banner (CHANGE 3) -->
-    <div id="batchCompleteBanner"
-         style="display:none; background:#F0FDF4; border:1px solid #86EFAC; border-radius:10px; padding:20px 24px; margin-top:16px; text-align:center;">
-      <div style="font-size:18px; font-weight:600; color:#166534;">✅ Batch complete!</div>
-      <div id="batch-complete-stats" style="color:#555; font-size:14px; margin-top:4px;"></div>
-      <button id="download-excel-btn"
-              onclick="handleExcelDownload()"
-              style="margin-top:16px; background:#003580; color:#fff; padding:10px 24px; border:none; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer;">
-        Download Excel Report ↓
-      </button>
+    <div id="batchCompleteBanner" style="display:none;background:#F0FDF4;border:1px solid #86EFAC;border-radius:10px;padding:20px 24px;margin-top:16px;text-align:center;">
+      <div style="font-size:18px;font-weight:600;color:#166534;">✅ Batch complete!</div>
+      <div id="batch-complete-stats" style="color:#555;font-size:14px;margin-top:4px;"></div>
+      <button id="download-excel-btn" onclick="handleExcelDownload()" style="margin-top:16px;background:#003580;color:#fff;padding:10px 24px;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;">Download Excel Report ↓</button>
     </div>
 
   </div><!-- end #batchSection -->
 
-  <!-- Preview modal (CHANGE 4D) -->
-  <div id="preview-modal-overlay"
-       onclick="closePreviewModal()"
-       style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
-    <div onclick="event.stopPropagation()"
-         style="background:#fff; border-radius:12px; width:90%; max-width:620px; max-height:85vh; overflow-y:auto; padding:24px; position:relative;">
-      <button onclick="closePreviewModal()"
-              style="position:absolute; top:16px; right:16px; background:none; border:none; font-size:20px; cursor:pointer; color:#888; line-height:1;">×</button>
-      <div id="modal-merchant-name" style="font-size:18px; font-weight:600; padding-right:32px;"></div>
-      <div id="modal-merchant-meta" style="font-size:13px; color:#888; margin-top:4px; margin-bottom:16px;"></div>
-      <div style="display:flex; gap:4px; margin-bottom:16px;">
-        <button onclick="switchModalTab('whatsapp')" id="modal-tab-whatsapp"
-                style="padding:6px 16px; border-radius:6px; font-size:13px; cursor:pointer; border:1px solid #ddd; background:#1a1a1a; color:#fff; font-weight:500;">
-          WhatsApp
-        </button>
-        <button onclick="switchModalTab('push')" id="modal-tab-push"
-                style="padding:6px 16px; border-radius:6px; font-size:13px; cursor:pointer; border:1px solid #ddd; background:#fff; color:#333;">
-          Push
-        </button>
-        <button onclick="switchModalTab('banner')" id="modal-tab-banner"
-                style="padding:6px 16px; border-radius:6px; font-size:13px; cursor:pointer; border:1px solid #ddd; background:#fff; color:#333;">
-          Banner
-        </button>
+  <!-- Preview modal -->
+  <div id="preview-modal-overlay" onclick="closePreviewModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;">
+    <div onclick="event.stopPropagation()" style="background:#fff;border-radius:12px;width:90%;max-width:620px;max-height:85vh;overflow-y:auto;padding:24px;position:relative;">
+      <button onclick="closePreviewModal()" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:20px;cursor:pointer;color:#888;line-height:1;">×</button>
+      <div id="modal-merchant-name" style="font-size:18px;font-weight:600;padding-right:32px;"></div>
+      <div id="modal-merchant-meta" style="font-size:13px;color:#888;margin-top:4px;margin-bottom:16px;"></div>
+      <div style="display:flex;gap:4px;margin-bottom:16px;">
+        <button onclick="switchModalTab('whatsapp')" id="modal-tab-whatsapp" style="padding:6px 16px;border-radius:6px;font-size:13px;cursor:pointer;border:1px solid #ddd;background:#1a1a1a;color:#fff;font-weight:500;">WhatsApp</button>
+        <button onclick="switchModalTab('push')" id="modal-tab-push" style="padding:6px 16px;border-radius:6px;font-size:13px;cursor:pointer;border:1px solid #ddd;background:#fff;color:#333;">Push</button>
+        <button onclick="switchModalTab('banner')" id="modal-tab-banner" style="padding:6px 16px;border-radius:6px;font-size:13px;cursor:pointer;border:1px solid #ddd;background:#fff;color:#333;">Banner</button>
       </div>
-      <div id="modal-content"
-           style="background:#f9fafb; border-radius:8px; padding:16px; font-size:14px; line-height:1.7; white-space:pre-wrap; min-height:120px;"></div>
-      <div style="display:flex; justify-content:space-between; margin-top:16px;">
-        <button onclick="navigateModal(-1)"
-                style="padding:8px 16px; border:1px solid #ddd; border-radius:6px; font-size:13px; cursor:pointer; background:#fff;">
-          ← Previous
-        </button>
-        <span id="modal-nav-label" style="font-size:13px; color:#888; align-self:center;"></span>
-        <button onclick="navigateModal(1)"
-                style="padding:8px 16px; border:1px solid #ddd; border-radius:6px; font-size:13px; cursor:pointer; background:#fff;">
-          Next →
-        </button>
+      <div id="modal-content" style="background:#f9fafb;border-radius:8px;padding:16px;font-size:14px;line-height:1.7;white-space:pre-wrap;min-height:120px;"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:16px;">
+        <button onclick="navigateModal(-1)" style="padding:8px 16px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;background:#fff;">← Previous</button>
+        <span id="modal-nav-label" style="font-size:13px;color:#888;align-self:center;"></span>
+        <button onclick="navigateModal(1)" style="padding:8px 16px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;background:#fff;">Next →</button>
       </div>
     </div>
   </div>
 
-</div>
+</div><!-- end .container -->
 
 <script>
-  // ─── Pi Commerce angle metadata (display labels + colors) ────────
-  const ANGLES = {
-    Negative:           { name: 'Negative',           tag: 'Customer complaints driving people away',    color: '#ef4444' },
-    Decline:            { name: 'Decline',            tag: 'Once-loyal customers have stopped coming',   color: '#f59e0b' },
-    LowTraffic:         { name: 'Low Traffic',        tag: 'Empty store, low footfall',                  color: '#a855f7' },
-    Neutral:            { name: 'Neutral',            tag: 'Average reviews, nothing memorable',         color: '#94a3b8' },
-    HiddenCeiling:      { name: 'Hidden Ceiling',     tag: 'Loved, but unknown to most nearby',          color: '#10b981' },
-    CompetitorCatchUp:  { name: 'Competitor Catch-Up', tag: 'Competition gaining ground',                color: '#3b82f6' },
-    SilentChurn:        { name: 'Silent Churn',       tag: 'Happy customers, but few return',            color: '#06b6d4' },
-  };
+const ANGLES = {
+  Negative:          { name:'Negative',            tag:'Customer complaints driving people away',  color:'#ef4444' },
+  Decline:           { name:'Decline',             tag:'Once-loyal customers have stopped coming', color:'#f59e0b' },
+  LowTraffic:        { name:'Low Traffic',         tag:'Empty store, low footfall',               color:'#a855f7' },
+  Neutral:           { name:'Neutral',             tag:'Average reviews, nothing memorable',      color:'#94a3b8' },
+  HiddenCeiling:     { name:'Hidden Ceiling',      tag:'Loved, but unknown to most nearby',       color:'#10b981' },
+  CompetitorCatchUp: { name:'Competitor Catch-Up', tag:'Competition gaining ground',              color:'#3b82f6' },
+  SilentChurn:       { name:'Silent Churn',        tag:'Happy customers, but few return',         color:'#06b6d4' },
+};
 
-  // ─── DOM refs ──────────────────────────────────────────────────
-  const $ = id => document.getElementById(id);
-  const form = $('form');
-  const runBtn = $('runBtn');
-  const formError = $('formError');
+const $ = id => document.getElementById(id);
+const form = $('form'), runBtn = $('runBtn'), formError = $('formError');
 
-  // ─── Step helpers ──────────────────────────────────────────────
-  function renderSteps(stepLabels) {
-    const c = $('stepsContainer');
-    c.innerHTML = '';
-    stepLabels.forEach((label, i) => {
-      const div = document.createElement('div');
-      div.className = 'step';
-      div.id = 'step' + (i + 1);
-      div.innerHTML = `
-        <span class="step-icon">${i + 1}</span>
-        <div>
-          <div class="step-title">${escapeHtml(label)}</div>
-          <div class="step-detail" id="step${i + 1}Detail"></div>
-        </div>`;
-      c.appendChild(div);
-    });
+// Auto-detect API base: localhost in dev, Render in prod
+const API = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000'
+  : 'https://merchant-analyzer.onrender.com';
+
+async function apiPost(path, body) {
+  const r = await fetch(API + path, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  const data = await r.json().catch(()=>({}));
+  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  return data;
+}
+
+// ── Step helpers ──────────────────────────────────────────────────
+function renderSteps(labels) {
+  const c = $('stepsContainer'); c.innerHTML = '';
+  labels.forEach((label, i) => {
+    const div = document.createElement('div');
+    div.className = 'step'; div.id = 'step' + (i+1);
+    div.innerHTML = `<span class="step-icon">${i+1}</span><div><div class="step-title">${escapeHtml(label)}</div><div class="step-detail" id="step${i+1}Detail"></div></div>`;
+    c.appendChild(div);
+  });
+}
+function setStep(n, state, detail, titleOverride) {
+  const el = $('step'+n); if (!el) return;
+  el.classList.remove('active','done','error'); if (state) el.classList.add(state);
+  const icon = el.querySelector('.step-icon');
+  icon.textContent = state==='done'?'✓':state==='error'?'!':state==='active'?'…':String(n);
+  if (titleOverride !== undefined) { const t = el.querySelector('.step-title'); if (t) t.textContent = titleOverride; }
+  if (detail !== undefined) { const d = $('step'+n+'Detail'); if (d) d.textContent = detail||''; }
+}
+function markActiveStepError() {
+  document.querySelectorAll('.step.active').forEach(el => { el.classList.remove('active'); el.classList.add('error'); el.querySelector('.step-icon').textContent = '!'; });
+}
+function showError(msg) { const b = $('errBox'); b.textContent = msg; b.classList.remove('hidden'); }
+function escapeHtml(s) { return String(s??'').replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+
+// ════════════════════════════════════════════════════════════════
+// MANUAL PIPELINE
+// phone optional, businessName optional (at least one required)
+// latitude + longitude optional pair — tightens Google search bias
+// ════════════════════════════════════════════════════════════════
+async function runPipeline({ phone, businessName, latitude, longitude, sortOrder }) {
+  renderSteps(['Finding place via Google Places API','Fetching reviews','Classifying merchant & generating copy']);
+
+  const parts = [phone, businessName].filter(Boolean);
+  const coordStr = (latitude && longitude) ? ` @ ${latitude},${longitude}` : '';
+  setStep(1, 'active', `Searching: ${parts.join(' / ')}${coordStr}`);
+
+  const place = await apiPost('/api/google/find-place', {
+    phone:        phone || null,
+    businessName: businessName || null,
+    latitude:     latitude || null,
+    longitude:    longitude || null,
+  });
+  setStep(1, 'done', `Found: ${place.name} (via ${place.matchedBy || 'search'})`);
+  renderPlaceCard(place);
+
+  setStep(2, 'active', 'Calling Google Places Details API…');
+  const result = await apiPost('/api/google/reviews', {
+    placeId: place.placeId, sortOrder,
+    placeMetadata: { name:place.name, formattedAddress:place.formattedAddress, rating:place.rating, totalReviews:place.totalReviews },
+  });
+  if (!result.reviews || result.reviews.length === 0) throw new Error('Google Places returned no reviews for this place.');
+  setStep(2, 'done', `Fetched ${result.reviews.length} review${result.reviews.length===1?'':'s'} (max 5)`);
+
+  setStep(3, 'active', 'Sending to LLM…');
+  const out = await apiPost('/api/generate-copy', {
+    reviews: result.reviews,
+    placeMetadata: { name:place.name, formattedAddress:place.formattedAddress, rating:place.rating, totalReviews:place.totalReviews },
+  });
+  setStep(3, 'done', `Angle: ${(ANGLES[out.classification.angle]||{name:out.classification.angle}).name}`);
+  return { ...out, source:'google_places' };
+}
+
+function renderPlaceCard(place) {
+  $('placeWrap').classList.remove('hidden');
+  $('placeCard').innerHTML = `
+    <div class="pname">${escapeHtml(place.name)}</div>
+    <div class="paddr">${escapeHtml(place.formattedAddress)}</div>
+    <div class="pmeta">
+      <span>★ <strong>${place.rating??'—'}</strong></span>
+      <span><strong>${place.totalReviews??0}</strong> total reviews on Google</span>
+      <span style="color:#999;">place_id: ${place.placeId.slice(0,18)}…</span>
+      ${place.matchedBy ? `<span style="color:#16a34a;font-weight:600;">matched via ${place.matchedBy}</span>` : ''}
+      ${place.lowConfidence ? `<span style="color:#f59e0b;font-weight:600;">⚠ low confidence name match</span>` : ''}
+    </div>`;
+}
+
+function renderResults({ classification, copy, placeMetadata }, source) {
+  $('resultsWrap').classList.remove('hidden');
+  $('resName').textContent = placeMetadata.name||'—';
+  $('resAddr').textContent = placeMetadata.formattedAddress||'';
+  const badgeWrap = $('sourceBadgeWrap'); badgeWrap.innerHTML = '';
+  const badge = document.createElement('span'); badge.className = 'source-badge google'; badge.textContent = 'Analyzed via Google Places';
+  badgeWrap.appendChild(badge);
+  const angleMeta = ANGLES[classification.angle]||{name:classification.angle};
+  const chips = $('resChips'); chips.innerHTML = '';
+  chips.appendChild(chipEl(`★ ${placeMetadata.rating??'—'}`));
+  chips.appendChild(chipEl(`${placeMetadata.totalReviews??0} reviews`));
+  chips.appendChild(chipEl(`Angle: ${angleMeta.name}`, true));
+  $('resSummary').textContent = classification.summary||'—';
+  renderClassification(classification);
+  resetChannelSection(copy);
+  const banner = $('noticeBanner');
+  if (source==='google_places') { banner.textContent='⚠ Analysis based on reviews returned by the Google Places API (max 5 per place).'; banner.classList.remove('hidden'); }
+  else banner.classList.add('hidden');
+  $('resultsWrap').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function chipEl(text, primary, extraClass) {
+  const s = document.createElement('span');
+  s.className = 'chip'+(primary?' primary':'')+(extraClass?' '+extraClass:'');
+  s.textContent = text; return s;
+}
+
+function renderClassification(cls) {
+  const meta = ANGLES[cls.angle]||{name:cls.angle,tag:'',color:'#888'};
+  const body = $('classificationBody'); body.innerHTML = '';
+  const pill = document.createElement('span'); pill.className = 'angle-pill'; pill.style.borderLeftColor = meta.color;
+  pill.innerHTML = `<span>${escapeHtml(meta.name)}</span><span class="angle-tag">${escapeHtml(meta.tag)}</span>`;
+  body.appendChild(pill);
+  if (cls.isSevere && cls.angle==='Negative') { const sev=chipEl('Severe — repeated complaints',false,'severe'); sev.style.marginLeft='8px'; body.appendChild(sev); }
+  const row = document.createElement('div'); row.className = 'cls-meta-row';
+  if (Array.isArray(cls.issues) && cls.issues.length) {
+    const lbl=document.createElement('span'); lbl.className='meta-label'; lbl.textContent='Issues:'; row.appendChild(lbl);
+    cls.issues.forEach(iss => row.appendChild(chipEl(iss,false,'issue')));
+  } else { const lbl=document.createElement('span'); lbl.className='meta-label'; lbl.textContent='Issues: none detected'; row.appendChild(lbl); }
+  body.appendChild(row);
+  if (cls.businessCategory && cls.businessCategory!=='Other') {
+    const row2=document.createElement('div'); row2.className='cls-meta-row';
+    const lbl2=document.createElement('span'); lbl2.className='meta-label'; lbl2.textContent='Category:'; row2.appendChild(lbl2);
+    row2.appendChild(chipEl(cls.businessCategory)); body.appendChild(row2);
   }
+}
 
-  function setStep(n, state, detail, titleOverride) {
-    const el = $('step' + n);
-    if (!el) return;
-    el.classList.remove('active', 'done', 'error');
-    if (state) el.classList.add(state);
-    const icon = el.querySelector('.step-icon');
-    if (state === 'done') icon.textContent = '✓';
-    else if (state === 'error') icon.textContent = '!';
-    else if (state === 'active') icon.textContent = '…';
-    else icon.textContent = String(n);
-    if (titleOverride !== undefined) {
-      const t = el.querySelector('.step-title');
-      if (t) t.textContent = titleOverride;
-    }
-    if (detail !== undefined) {
-      const d = $('step' + n + 'Detail');
-      if (d) d.textContent = detail || '';
-    }
+// Channel preview
+let activeChannel = 'whatsapp', currentCopy = null;
+function resetChannelSection(copy) {
+  currentCopy = copy; activeChannel = 'whatsapp';
+  document.querySelectorAll('.channel-toggle button').forEach(b => b.classList.toggle('active', b.dataset.channel==='whatsapp'));
+  renderChannelPreview('whatsapp');
+}
+function renderChannelPreview(channel) {
+  const target = $('channelRendered'); target.innerHTML = ''; if (!currentCopy) return;
+  if (channel==='whatsapp') {
+    const wrap = document.createElement('div'); wrap.className = 'wa-preview';
+    wrap.innerHTML = `<div class="wa-bubble"><pre class="wa-message">${escapeHtml(currentCopy.whatsapp||'')}</pre><span class="wa-time">${currentTimeShort()} ✓✓</span></div>`;
+    target.appendChild(wrap);
+  } else if (channel==='push') {
+    const {title, body} = splitPushForDisplay(currentCopy.push||'');
+    const wrap = document.createElement('div'); wrap.className = 'push-preview';
+    wrap.innerHTML = `<div class="push-card"><div class="push-icon">Pi</div><div class="push-content"><div class="push-app"><span>PI COMMERCE</span><span>now</span></div><div class="push-title">${escapeHtml(title)}</div><div class="push-body">${escapeHtml(body)}</div></div></div>`;
+    target.appendChild(wrap);
+  } else if (channel==='banner') {
+    const banner = currentCopy.banner||{};
+    const wrap = document.createElement('div'); wrap.className = 'banner-preview';
+    wrap.innerHTML = `<div class="banner-text"><div class="banner-line">${escapeHtml(banner.text||'')}</div>${banner.sub?`<div class="banner-sub">${escapeHtml(banner.sub)}</div>`:''}</div><button type="button" class="banner-cta" tabindex="-1">Try Now</button>`;
+    target.appendChild(wrap);
   }
-  function markActiveStepError() {
-    document.querySelectorAll('.step.active').forEach(el => {
-      el.classList.remove('active');
-      el.classList.add('error');
-      el.querySelector('.step-icon').textContent = '!';
-    });
-  }
-  function showError(msg) {
-    const box = $('errBox');
-    box.textContent = msg;
-    box.classList.remove('hidden');
-  }
-
-  // ─── API helpers ───────────────────────────────────────────────
-  const API = 'https://merchant-analyzer.onrender.com';
-  async function apiPost(path, body) {
-    const r = await fetch(API + path, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-    return data;
-  }
-
-  // ════════════════════════════════════════════════════════════════
-  // PIPELINE — 3 steps now (was 5 before the rewrite)
-  //   1. Find place      → /api/google/find-place
-  //   2. Fetch reviews   → /api/google/reviews
-  //   3. Classify + copy → /api/generate-copy   (single LLM call)
-  // ════════════════════════════════════════════════════════════════
-  async function runPipeline({ businessName, sortOrder }) {
-    renderSteps([
-      'Finding place via Google Places API',
-      'Fetching reviews',
-      'Classifying merchant & generating copy',
-    ]);
-
-    // Step 1 — find place
-    setStep(1, 'active', `Searching: ${businessName}`);
-    const place = await apiPost('/api/google/find-place', { businessName });
-    setStep(1, 'done', `Found: ${place.name}`);
-    renderPlaceCard(place);
-
-    // Step 2 — fetch reviews
-    setStep(2, 'active', 'Calling Google Places Details API…');
-    const result = await apiPost('/api/google/reviews', {
-      placeId: place.placeId,
-      sortOrder,
-      placeMetadata: {
-        name: place.name,
-        formattedAddress: place.formattedAddress,
-        rating: place.rating,
-        totalReviews: place.totalReviews,
-      },
-    });
-    if (!result.reviews || result.reviews.length === 0) {
-      throw new Error('Google Places returned no reviews for this place.');
-    }
-    setStep(2, 'done', `Fetched ${result.reviews.length} review${result.reviews.length === 1 ? '' : 's'} (max 5)`);
-
-    // Step 3 — classify + generate copy in a single backend call
-    setStep(3, 'active', `Sending to LLM…`);
-    const placeMetadata = {
-      name: place.name,
-      formattedAddress: place.formattedAddress,
-      rating: place.rating,
-      totalReviews: place.totalReviews,
-    };
-    const out = await apiPost('/api/generate-copy', {
-      reviews: result.reviews,
-      placeMetadata,
-    });
-    const angleLabel = (ANGLES[out.classification.angle] || { name: out.classification.angle }).name;
-    setStep(3, 'done', `Angle: ${angleLabel}`);
-
-    return { ...out, source: 'google_places' };
-  }
-
-  // ─── Renderers ─────────────────────────────────────────────────
-  function renderPlaceCard(place) {
-    $('placeWrap').classList.remove('hidden');
-    $('placeCard').innerHTML = `
-      <div class="pname">${escapeHtml(place.name)}</div>
-      <div class="paddr">${escapeHtml(place.formattedAddress)}</div>
-      <div class="pmeta">
-        <span>★ <strong>${place.rating ?? '—'}</strong></span>
-        <span><strong>${place.totalReviews ?? 0}</strong> total reviews on Google</span>
-        <span style="color:#999;">place_id: ${place.placeId.slice(0,18)}…</span>
-      </div>`;
-  }
-
-  function renderResults({ classification, copy, placeMetadata }, source) {
-    const wrap = $('resultsWrap');
-    wrap.classList.remove('hidden');
-
-    $('resName').textContent = placeMetadata.name || '—';
-    $('resAddr').textContent = placeMetadata.formattedAddress || '';
-
-    // Source badge
-    const badgeWrap = $('sourceBadgeWrap');
-    badgeWrap.innerHTML = '';
-    const badge = document.createElement('span');
-    badge.className = 'source-badge google';
-    badge.textContent = 'Analyzed via Google Places';
-    badgeWrap.appendChild(badge);
-
-    // Top chips: rating, review count, angle
-    const angleMeta = ANGLES[classification.angle] || { name: classification.angle };
-    const chips = $('resChips');
-    chips.innerHTML = '';
-    chips.appendChild(chipEl(`★ ${placeMetadata.rating ?? '—'}`));
-    chips.appendChild(chipEl(`${placeMetadata.totalReviews ?? 0} reviews`));
-    chips.appendChild(chipEl(`Angle: ${angleMeta.name}`, true));
-
-    // Summary
-    $('resSummary').textContent = classification.summary || '—';
-
-    // Classification details card
-    renderClassification(classification);
-
-    // Channel preview state
-    resetChannelSection(copy);
-
-    // Yellow notice for Google source
-    const banner = $('noticeBanner');
-    if (source === 'google_places') {
-      banner.textContent = '⚠ Analysis based on reviews returned by the Google Places API (max 5 per place).';
-      banner.classList.remove('hidden');
-    } else {
-      banner.classList.add('hidden');
-    }
-
-    wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  function chipEl(text, primary, extraClass) {
-    const s = document.createElement('span');
-    s.className = 'chip' + (primary ? ' primary' : '') + (extraClass ? ' ' + extraClass : '');
-    s.textContent = text;
-    return s;
-  }
-
-  function renderClassification(cls) {
-    const meta = ANGLES[cls.angle] || { name: cls.angle, tag: '', color: '#888' };
-    const body = $('classificationBody');
-    body.innerHTML = '';
-
-    // Angle pill
-    const pill = document.createElement('span');
-    pill.className = 'angle-pill';
-    pill.style.borderLeftColor = meta.color;
-    pill.innerHTML = `<span>${escapeHtml(meta.name)}</span><span class="angle-tag">${escapeHtml(meta.tag)}</span>`;
-    body.appendChild(pill);
-
-    // Severity flag (only for Negative + isSevere)
-    if (cls.isSevere && cls.angle === 'Negative') {
-      const sev = chipEl('Severe — repeated complaints', false, 'severe');
-      sev.style.marginLeft = '8px';
-      body.appendChild(sev);
-    }
-
-    // Issues + business category in one row
-    const row = document.createElement('div');
-    row.className = 'cls-meta-row';
-
-    if (Array.isArray(cls.issues) && cls.issues.length) {
-      const lbl = document.createElement('span');
-      lbl.className = 'meta-label';
-      lbl.textContent = 'Issues:';
-      row.appendChild(lbl);
-      cls.issues.forEach(iss => row.appendChild(chipEl(iss, false, 'issue')));
-    } else {
-      const lbl = document.createElement('span');
-      lbl.className = 'meta-label';
-      lbl.textContent = 'Issues: none detected';
-      row.appendChild(lbl);
-    }
-
-    body.appendChild(row);
-
-    if (cls.businessCategory && cls.businessCategory !== 'Other') {
-      const row2 = document.createElement('div');
-      row2.className = 'cls-meta-row';
-      const lbl2 = document.createElement('span');
-      lbl2.className = 'meta-label';
-      lbl2.textContent = 'Category:';
-      row2.appendChild(lbl2);
-      row2.appendChild(chipEl(cls.businessCategory));
-      body.appendChild(row2);
-    }
-  }
-
-  function escapeHtml(s) {
-    return String(s ?? '').replace(/[&<>"']/g, ch => ({
-      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-    }[ch]));
-  }
-
-  // ════════════════════════════════════════════════════════════════
-  // CHANNEL CREATIVE PREVIEW
-  // The new backend returns all 3 channels at once: copy.whatsapp,
-  // copy.push, copy.banner — each is a plain string. The toggle
-  // just switches which one to render — no extra API calls.
-  // ════════════════════════════════════════════════════════════════
-  let activeChannel = 'whatsapp';
-  let currentCopy = null;
-
-  function resetChannelSection(copy) {
-    currentCopy = copy;
-    activeChannel = 'whatsapp';
-    document.querySelectorAll('.channel-toggle button').forEach(b => {
-      b.classList.toggle('active', b.dataset.channel === activeChannel);
-    });
+}
+function splitPushForDisplay(str) {
+  if (!str) return {title:'',body:''};
+  const qIdx = str.indexOf('?'); if (qIdx>=0) return {title:str.slice(0,qIdx+1).trim(),body:str.slice(qIdx+1).trim()};
+  const m = str.match(/^(.+?\.)\s+(.*)$/); if (m) return {title:m[1].trim(),body:m[2].trim()};
+  return {title:str,body:''};
+}
+function currentTimeShort() {
+  const d=new Date(); let h=d.getHours(); const m=String(d.getMinutes()).padStart(2,'0');
+  const ampm=h>=12?'PM':'AM'; h=h%12||12; return `${h}:${m} ${ampm}`;
+}
+document.querySelectorAll('.channel-toggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    activeChannel = btn.dataset.channel;
+    document.querySelectorAll('.channel-toggle button').forEach(b => b.classList.toggle('active', b.dataset.channel===activeChannel));
     renderChannelPreview(activeChannel);
-  }
-
-  function renderChannelPreview(channel) {
-    const target = $('channelRendered');
-    target.innerHTML = '';
-    if (!currentCopy) return;
-
-    if (channel === 'whatsapp') {
-      const wrap = document.createElement('div');
-      wrap.className = 'wa-preview';
-      wrap.innerHTML = `
-        <div class="wa-bubble">
-          <pre class="wa-message">${escapeHtml(currentCopy.whatsapp || '')}</pre>
-          <span class="wa-time">${currentTimeShort()} ✓✓</span>
-        </div>`;
-      target.appendChild(wrap);
-    } else if (channel === 'push') {
-      const { title, body } = splitPushForDisplay(currentCopy.push || '');
-      const wrap = document.createElement('div');
-      wrap.className = 'push-preview';
-      wrap.innerHTML = `
-        <div class="push-card">
-          <div class="push-icon">Pi</div>
-          <div class="push-content">
-            <div class="push-app"><span>PI COMMERCE</span><span>now</span></div>
-            <div class="push-title">${escapeHtml(title)}</div>
-            <div class="push-body">${escapeHtml(body)}</div>
-          </div>
-        </div>`;
-      target.appendChild(wrap);
-    } else if (channel === 'banner') {
-      const banner = currentCopy.banner || {};
-      const headline = banner.text || '';
-      const subtext = banner.sub || '';
-      const cta = 'Try Now';
-
-      const wrap = document.createElement('div');
-      wrap.className = 'banner-preview';
-      wrap.innerHTML = `
-        <div class="banner-text">
-          <div class="banner-line">${escapeHtml(headline)}</div>
-          ${subtext ? `<div class="banner-sub">${escapeHtml(subtext)}</div>` : ''}
-        </div>
-        <button type="button" class="banner-cta" tabindex="-1">${escapeHtml(cta)}</button>`;
-      target.appendChild(wrap);
-    }
-  }
-
-  // Split push string into title (the hook) and body (the rest).
-  // Prefer splitting at the first "?" since most hooks are questions.
-  // Fall back to ". " (period + whitespace) so we never split inside
-  // decimals like "4.6".
-  function splitPushForDisplay(str) {
-    if (!str) return { title: '', body: '' };
-    const qIdx = str.indexOf('?');
-    if (qIdx >= 0) {
-      return {
-        title: str.slice(0, qIdx + 1).trim(),
-        body: str.slice(qIdx + 1).trim(),
-      };
-    }
-    const m = str.match(/^(.+?\.)\s+(.*)$/);
-    if (m) return { title: m[1].trim(), body: m[2].trim() };
-    return { title: str, body: '' };
-  }
-
-  function currentTimeShort() {
-    const d = new Date();
-    let h = d.getHours();
-    const m = String(d.getMinutes()).padStart(2, '0');
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    h = h % 12 || 12;
-    return `${h}:${m} ${ampm}`;
-  }
-
-  // Wire toggle buttons (only once)
-  document.querySelectorAll('.channel-toggle button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      activeChannel = btn.dataset.channel;
-      document.querySelectorAll('.channel-toggle button').forEach(b => {
-        b.classList.toggle('active', b.dataset.channel === activeChannel);
-      });
-      renderChannelPreview(activeChannel);
-    });
   });
+});
 
-  // ─── Form submit (the orchestrator) ────────────────────────────
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    formError.textContent = '';
-    const businessName = $('businessName').value.trim();
-    const sortOrder = $('sortOrder').value;
+// ── Form submit ───────────────────────────────────────────────────
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  formError.textContent = '';
+  const phone        = $('businessPhone').value.trim();
+  const businessName = $('businessName').value.trim();
+  const lat          = $('manualLat').value.trim();
+  const lng          = $('manualLng').value.trim();
+  const sortOrder    = $('sortOrder').value;
 
-    if (!businessName) {
-      formError.textContent = 'Please enter the business name and address.';
+  // at least phone or name required
+  if (!phone && !businessName) {
+    formError.textContent = 'Please enter at least a phone number or business name.'; return;
+  }
+  // lat/long must come as a pair
+  if ((lat && !lng) || (!lat && lng)) {
+    formError.textContent = 'Please enter both latitude and longitude, or leave both empty.'; return;
+  }
+
+  runBtn.disabled = true; runBtn.textContent = 'Working…';
+  $('stepsCard').classList.remove('hidden');
+  $('placeWrap').classList.add('hidden');
+  $('resultsWrap').classList.add('hidden');
+  $('noticeBanner').classList.add('hidden');
+  $('errBox').classList.add('hidden'); $('errBox').textContent = '';
+  $('stepsHeading').textContent = 'Pipeline';
+
+  try {
+    const result = await runPipeline({
+      phone:        phone || null,
+      businessName: businessName || null,
+      latitude:     lat || null,
+      longitude:    lng || null,
+      sortOrder,
+    });
+    renderResults(result, result.source);
+  } catch (err) {
+    console.error(err); markActiveStepError(); showError(err.message || 'Something went wrong.');
+  } finally {
+    runBtn.disabled = false; runBtn.textContent = 'Analyze Merchant →';
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// BATCH MODE
+// ════════════════════════════════════════════════════════════════
+function switchMode(mode) {
+  const isManual = mode==='manual';
+  $('manualSection').classList.toggle('hidden', !isManual);
+  $('batchSection').classList.toggle('hidden', isManual);
+  $('modeManual').classList.toggle('active', isManual);
+  $('modeBatch').classList.toggle('active', !isManual);
+}
+
+let uploadedMerchants=[], completedMerchants=[], filteredMerchants=[];
+let batchSessionId=null, batchIsPaused=false, batchIsStopped=false;
+let batchSuccess=0, batchFail=0, batchTimings=[], currentPage=1;
+const PAGE_SIZE = 20;
+let searchDebounceTimer = null;
+
+function handleFileDrop(event) { event.preventDefault(); $('upload-area').classList.remove('drag-over'); const f=event.dataTransfer.files[0]; if(f) processUploadedFile(f); }
+function handleFileSelect(event) { const f=event.target.files[0]; if(f) processUploadedFile(f); }
+function removeUploadedFile() {
+  uploadedMerchants = []; $('upload-area').classList.remove('file-loaded');
+  $('upload-placeholder').style.display='block'; $('upload-success').style.display='none';
+  $('csv-file-input').value=''; $('preview-table-section').style.display='none';
+  updateStartButton();
+}
+
+async function processUploadedFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  let rows = [];
+  try {
+    if (ext==='csv') { rows = parseCSV(await file.text()); }
+    else if (ext==='xlsx'||ext==='xls') {
+      const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
+    } else { showBatchUploadError('Unsupported file type. Please upload .csv, .xlsx, or .xls'); return; }
+
+    const normalized = rows.map(row => {
+      const n = {};
+      Object.keys(row).forEach(k => {
+        const lower = k.toLowerCase().replace(/[_\s]/g,'');
+        if (['merchantid','merchant_id','id'].includes(lower))                                                         n.merchant_id = row[k];
+        else if (['name','businessname','business_name'].includes(lower))                                              n.name        = row[k];
+        else if (['phone','mobile','phonenumber','phone_number','contact','mobilenumber','mobile_number'].includes(lower)) n.phone    = row[k];
+        else if (['latitude','lat'].includes(lower))                                                                   n.latitude    = row[k];
+        else if (['longitude','lng','lon','long'].includes(lower))                                                     n.longitude   = row[k];
+      });
+      return n;
+    }).filter(r => r.merchant_id && r.phone);
+
+    if (normalized.length === 0) {
+      showBatchUploadError('Missing required columns: merchant_id, phone, latitude, longitude.\n\nNote: "name" is optional. Please check your file.');
       return;
     }
 
-    runBtn.disabled = true;
-    runBtn.textContent = 'Working…';
-    $('stepsCard').classList.remove('hidden');
-    $('placeWrap').classList.add('hidden');
-    $('resultsWrap').classList.add('hidden');
-    $('noticeBanner').classList.add('hidden');
-    $('errBox').classList.add('hidden');
-    $('errBox').textContent = '';
-    $('stepsHeading').textContent = 'Pipeline';
-
-    try {
-      const result = await runPipeline({ businessName, sortOrder });
-      renderResults(result, result.source);
-    } catch (err) {
-      console.error(err);
-      markActiveStepError();
-      showError(err.message || 'Something went wrong.');
-    } finally {
-      runBtn.disabled = false;
-      runBtn.textContent = 'Analyze Merchant →';
-    }
-  });
-
-  // ═══════════════════════════════════════════════════════════════════
-  // BATCH MODE
-  // ═══════════════════════════════════════════════════════════════════
-
-  // ── Mode switching ────────────────────────────────────────────────
-  function switchMode(mode) {
-    const isManual = mode === 'manual';
-    $('manualSection').classList.toggle('hidden', !isManual);
-    $('batchSection').classList.toggle('hidden', isManual);
-    $('modeManual').classList.toggle('active', isManual);
-    $('modeBatch').classList.toggle('active', !isManual);
-  }
-
-  // ── Batch state ──────────────────────────────────────────────────
-  let uploadedMerchants = [];
-  let completedMerchants = [];
-  let batchSessionId  = null;
-  let batchIsPaused   = false;
-  let batchIsStopped  = false;
-  let batchSuccess    = 0;
-  let batchFail       = 0;
-  let batchTimings    = [];
-
-  // ── File upload ──────────────────────────────────────────────────
-  function handleFileDrop(event) {
-    event.preventDefault();
-    $('upload-area').classList.remove('drag-over');
-    const file = event.dataTransfer.files[0];
-    if (file) processUploadedFile(file);
-  }
-
-  function handleFileSelect(event) {
-    const file = event.target.files[0];
-    if (file) processUploadedFile(file);
-  }
-
-  function removeUploadedFile() {
-    uploadedMerchants = [];
-    $('upload-area').classList.remove('file-loaded');
-    $('upload-placeholder').style.display = 'block';
-    $('upload-success').style.display = 'none';
-    $('csv-file-input').value = '';
-    $('preview-table-section').style.display = 'none';
+    uploadedMerchants = normalized;
+    $('upload-area').classList.add('file-loaded');
+    $('upload-placeholder').style.display='none'; $('upload-success').style.display='block';
+    $('upload-filename').textContent = file.name;
+    $('upload-rowcount').textContent = `${normalized.length} merchants found`;
+    renderUploadPreview(normalized);
     updateStartButton();
-  }
+  } catch(err) { showBatchUploadError('Failed to parse file: '+err.message); }
+}
 
-  async function processUploadedFile(file) {
-    const ext = file.name.split('.').pop().toLowerCase();
-    let rows = [];
-    try {
-      if (ext === 'csv') {
-        const text = await file.text();
-        rows = parseCSV(text);
-      } else if (ext === 'xlsx' || ext === 'xls') {
-        const buffer = await file.arrayBuffer();
-        const wb = XLSX.read(buffer, { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      } else {
-        showBatchUploadError('Unsupported file type. Please upload .csv, .xlsx, or .xls');
-        return;
-      }
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  return lines.slice(1).filter(l=>l.trim()).map(line => {
+    const values = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+    const obj={}; headers.forEach((h,i)=>obj[h]=values[i]||''); return obj;
+  });
+}
 
-      const normalized = rows.map(row => {
-        const n = {};
-        Object.keys(row).forEach(k => {
-          const lower = k.toLowerCase().replace(/[_\s]/g, '');
-          if (['merchantid','merchant_id','id'].includes(lower))          n.merchant_id = row[k];
-          else if (['name','businessname','business_name'].includes(lower)) n.name        = row[k];
-          else if (['latitude','lat'].includes(lower))                     n.latitude    = row[k];
-          else if (['longitude','lng','lon','long'].includes(lower))       n.longitude   = row[k];
-        });
-        return n;
-      }).filter(r => r.merchant_id && r.name);
+function renderUploadPreview(merchants) {
+  const tbody = $('preview-tbody');
+  tbody.innerHTML = merchants.slice(0,5).map((m,i) => `
+    <tr style="background:${i%2===0?'#fff':'#f9fafb'}">
+      <td style="padding:8px 12px;font-size:13px;">${i+1}</td>
+      <td style="padding:8px 12px;font-size:13px;">${escapeHtml(String(m.merchant_id))}</td>
+      <td style="padding:8px 12px;font-size:13px;">${escapeHtml(String(m.phone||'—'))}</td>
+      <td style="padding:8px 12px;font-size:13px;font-weight:500;">${escapeHtml(m.name||'—')}</td>
+      <td style="padding:8px 12px;font-size:13px;color:#666;">${escapeHtml(String(m.latitude??''))}</td>
+      <td style="padding:8px 12px;font-size:13px;color:#666;">${escapeHtml(String(m.longitude??''))}</td>
+      <td style="padding:8px 12px;"><span style="background:#f0f0ee;color:#888;font-size:11px;padding:2px 10px;border-radius:99px;">Pending</span></td>
+    </tr>`).join('');
+  $('preview-count-label').textContent = `Showing ${Math.min(5,merchants.length)} of ${merchants.length} merchants · All ${merchants.length} will be processed`;
+  $('preview-table-section').style.display = 'block';
+}
 
-      if (normalized.length === 0) {
-        showBatchUploadError(
-          'Missing required columns: merchant_id, name, latitude, longitude. Please check your file.'
-        );
-        return;
-      }
+function updateStartButton() { const btn=$('batchStartBtn'); btn.disabled=uploadedMerchants.length===0; btn.title=uploadedMerchants.length===0?'Upload a file to begin':''; }
+function showBatchUploadError(msg) { alert(msg); }
 
-      uploadedMerchants = normalized;
-      $('upload-area').classList.add('file-loaded');
-      $('upload-placeholder').style.display = 'none';
-      $('upload-success').style.display = 'block';
-      $('upload-filename').textContent = file.name;
-      $('upload-rowcount').textContent = `${normalized.length} merchants found`;
-      renderUploadPreview(normalized);
-      updateStartButton();
-    } catch (err) {
-      showBatchUploadError('Failed to parse file: ' + err.message);
+function renderBatchTable(merchants) {
+  const tbody=$('batchTableBody'); tbody.innerHTML='';
+  merchants.forEach((m,i)=>{ const tr=document.createElement('tr'); tr.id=`brow-${i}`; tr.innerHTML=`<td>${i+1}</td><td>${escapeHtml(m.merchant_id??'—')}</td><td>${escapeHtml(m.name??'—')}</td><td>${escapeHtml(String(m.latitude??''))}</td><td>${escapeHtml(String(m.longitude??''))}</td><td><span class="batch-row-status pending" id="bstatus-${i}">Pending</span></td>`; tbody.appendChild(tr); });
+}
+
+function setBatchRowStatus(index, status, label) {
+  const row=$(`brow-${index}`); const pill=$(`bstatus-${index}`); if(!pill) return;
+  const labels={pending:'Pending',processing:'Processing…',done:'✓ Done',failed:'✗ Failed'};
+  pill.className=`batch-row-status ${status}`; pill.textContent=label||labels[status]||status;
+  if(row) row.className=status==='processing'?'processing':status==='done'?'done':status==='failed'?'failed':'';
+  if(status==='processing') row?.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function updateBatchProgress(done, total, success, fail, timings) {
+  const pct = total>0?Math.round((done/total)*100):0;
+  $('batchProgressFill').style.width = pct+'%';
+  let eta='';
+  if(timings.length>0&&done<total){const avg=timings.reduce((a,b)=>a+b,0)/timings.length; eta=` · ~${Math.round((avg*(total-done))/60000)} min remaining`;}
+  $('batchProgressLabel').textContent=`${done} of ${total} complete · ${fail} failed${eta}`;
+  $('batchRunningLabel').textContent=`Processing ${done+1} of ${total}…`;
+}
+
+const BATCH_STEPS = ['Loading merchant from CSV…','Building search query…','Finding place via Google Places API…','Fetching reviews (max 5)…','Classifying merchant & generating copy…','Saving to report…'];
+
+function renderBatchSteps() {
+  const c=$('batchStepsContainer'); c.innerHTML='';
+  BATCH_STEPS.forEach((label,i)=>{ const div=document.createElement('div'); div.className='step'; div.id=`bstep-${i}`; div.innerHTML=`<span class="step-icon" id="bstep-icon-${i}">○</span><span class="step-label" id="bstep-lbl-${i}">${label}</span>`; c.appendChild(div); });
+}
+
+function setBatchStep(index, state, sublabel) {
+  const icon=$(`bstep-icon-${index}`); const lbl=$(`bstep-lbl-${index}`); if(!icon) return;
+  const ICONS={pending:'○',active:'⟳',done:'✓',error:'✗'};
+  const CLASSES={pending:'',active:' active',done:' done',error:' error'};
+  icon.textContent=ICONS[state]||'○'; icon.className='step-icon'+(CLASSES[state]||'');
+  if(sublabel&&lbl) lbl.innerHTML=`${BATCH_STEPS[index]} <span style="color:#888;font-size:11px;">${escapeHtml(sublabel)}</span>`;
+}
+
+async function typewriterFill(fieldId, text) {
+  const el=$(fieldId); if(!el) return; el.value='';
+  for(const char of String(text??'')){ el.value+=char; await new Promise(r=>setTimeout(r,30)); }
+}
+
+const COHORT_COLORS = {
+  'silent churn':{bg:'#DBEAFE',text:'#1E40AF'},'negative':{bg:'#FEE2E2',text:'#991B1B'},
+  'hidden ceiling':{bg:'#FEF9C3',text:'#92400E'},'acquisition_gap':{bg:'#DCFCE7',text:'#166534'},
+  'retention_winback':{bg:'#DCFCE7',text:'#166534'},'frequency':{bg:'#FFEDD5',text:'#9A3412'},
+  'off_peak_imbalance':{bg:'#FCE7F3',text:'#9D174D'},'competitive_loss':{bg:'#FEE2E2',text:'#991B1B'},
+  'personalization_gap':{bg:'#EDE9FE',text:'#5B21B6'},
+};
+function getCohortColor(cohort) { if(!cohort) return{bg:'#F0F0EE',text:'#888'}; return COHORT_COLORS[cohort.toLowerCase()]||{bg:'#F0F0EE',text:'#555'}; }
+
+function addCompletedMerchant(merchant) {
+  completedMerchants.push(merchant); updateCohortFilter(); updateStatsBar();
+  const totalPages=Math.ceil(filteredMerchants.length/PAGE_SIZE);
+  const isOnLastPage=currentPage>=totalPages;
+  applyFilters(false);
+  if(isOnLastPage){currentPage=Math.ceil(filteredMerchants.length/PAGE_SIZE); renderTablePage();}
+  else{const badge=$('new-results-badge');const current=parseInt(badge.dataset.count||'0')+1;badge.dataset.count=current;badge.textContent=`↓ ${current} new result${current>1?'s':''}`;badge.style.display='inline-block';}
+  $('completed-table-section').style.display='block';
+}
+
+function applyFilters(resetPage=true) {
+  const search=($('table-search')?.value||'').toLowerCase();
+  const cohort=$('filter-cohort')?.value||''; const status=$('filter-status')?.value||'';
+  filteredMerchants=completedMerchants.filter(m=>{
+    const matchSearch=!search||(m.name||'').toLowerCase().includes(search)||String(m.merchant_id).toLowerCase().includes(search);
+    const matchCohort=!cohort||(m.cohort||'').toLowerCase()===cohort.toLowerCase();
+    const matchStatus=!status||m.status===status;
+    return matchSearch&&matchCohort&&matchStatus;
+  });
+  const cb=$('clear-filters-btn'); if(cb) cb.style.display=(search||cohort||status)?'inline':'none';
+  if(resetPage) currentPage=1; renderTablePage();
+}
+function clearFilters(){const s=$('table-search');if(s)s.value='';const c=$('filter-cohort');if(c)c.value='';const f=$('filter-status');if(f)f.value='';applyFilters();}
+function debounceSearch(){clearTimeout(searchDebounceTimer);searchDebounceTimer=setTimeout(()=>applyFilters(),200);}
+
+function renderTablePage() {
+  const tbody=$('completed-tbody'); if(!tbody) return;
+  const total=filteredMerchants.length; const totalPages=Math.max(1,Math.ceil(total/PAGE_SIZE));
+  currentPage=Math.min(currentPage,totalPages);
+  const start=(currentPage-1)*PAGE_SIZE; const end=Math.min(start+PAGE_SIZE,total);
+  tbody.innerHTML=filteredMerchants.slice(start,end).map((m,i)=>{
+    const rowNum=start+i+1; const color=getCohortColor(m.cohort); const isDone=m.status==='success';
+    const rowBg=m.status==='failed'?'#FFF5F5':(i%2===0?'#fff':'#F9FAFB');
+    return `<tr style="background:${rowBg};" onmouseover="this.style.background='#EFF6FF'" onmouseout="this.style.background='${rowBg}'">
+      <td style="padding:10px 12px;font-size:13px;color:#888;">${rowNum}</td>
+      <td style="padding:10px 12px;font-size:12px;color:#888;">${escapeHtml(String(m.merchant_id||''))}</td>
+      <td style="padding:10px 12px;font-size:13px;font-weight:500;">${escapeHtml(m.name||'')}</td>
+      <td style="padding:10px 12px;"><span style="background:${color.bg};color:${color.text};font-size:11px;padding:3px 10px;border-radius:99px;font-weight:500;">${escapeHtml(m.cohort||'—')}</span></td>
+      <td style="padding:10px 12px;font-size:13px;">${m.avg_rating?m.avg_rating+' ★':'—'}</td>
+      <td style="padding:10px 12px;">${isDone?'<span style="color:#16A34A;font-size:13px;">✓ Done</span>':'<span style="color:#DC2626;font-size:13px;">✗ Failed</span>'}</td>
+      <td style="padding:10px 12px;"><button onclick="openPreviewModal(${start+i})" style="padding:4px 12px;font-size:12px;border:1px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;color:#003580;font-weight:500;">Preview</button></td>
+    </tr>`;
+  }).join('');
+  const info=$('pagination-info'); if(info) info.textContent=total===0?'No results':`Showing ${start+1}–${end} of ${total} merchant${total!==1?'s':''}${total<completedMerchants.length?' (filtered)':''}`;
+  const pi=$('page-indicator'); if(pi) pi.textContent=`Page ${currentPage} of ${totalPages}`;
+  const prev=$('prev-page-btn'); if(prev) prev.disabled=currentPage<=1;
+  const next=$('next-page-btn'); if(next) next.disabled=currentPage>=totalPages;
+}
+
+function changePage(dir){currentPage=Math.max(1,Math.min(currentPage+dir,Math.ceil(filteredMerchants.length/PAGE_SIZE)));renderTablePage();const b=$('new-results-badge');if(b){b.style.display='none';b.dataset.count='0';}}
+function goToLastPage(){currentPage=Math.ceil(filteredMerchants.length/PAGE_SIZE);renderTablePage();const b=$('new-results-badge');if(b){b.style.display='none';b.dataset.count='0';}}
+
+function updateCohortFilter(){
+  const select=$('filter-cohort'); if(!select) return;
+  const existing=Array.from(select.options).map(o=>o.value);
+  completedMerchants.forEach(m=>{if(m.cohort&&!existing.includes(m.cohort)){const opt=document.createElement('option');opt.value=m.cohort;opt.textContent=m.cohort;select.appendChild(opt);}});
+}
+function updateStatsBar(){
+  const done=completedMerchants.filter(m=>m.status==='success').length;
+  const failed=completedMerchants.filter(m=>m.status==='failed').length;
+  const total=completedMerchants.length;
+  const d=$('stat-done');if(d)d.textContent=`✓ ${done} Done`;
+  const f=$('stat-failed');if(f)f.textContent=`✗ ${failed} Failed`;
+  const t=$('stat-total');if(t)t.textContent=`Total: ${total}`;
+}
+
+let currentModalIndex=0, currentModalTab='whatsapp';
+function openPreviewModal(index){currentModalIndex=index;currentModalTab='whatsapp';renderModal();$('preview-modal-overlay').style.display='flex';document.addEventListener('keydown',handleModalKeydown);}
+function closePreviewModal(){$('preview-modal-overlay').style.display='none';document.removeEventListener('keydown',handleModalKeydown);}
+function handleModalKeydown(e){if(e.key==='Escape')closePreviewModal();if(e.key==='ArrowRight')navigateModal(1);if(e.key==='ArrowLeft')navigateModal(-1);}
+function navigateModal(dir){currentModalIndex=Math.max(0,Math.min(currentModalIndex+dir,filteredMerchants.length-1));renderModal();}
+function switchModalTab(tab){
+  currentModalTab=tab;
+  ['whatsapp','push','banner'].forEach(t=>{const btn=$(`modal-tab-${t}`);if(btn){btn.style.background=t===tab?'#1a1a1a':'#fff';btn.style.color=t===tab?'#fff':'#333';}});
+  renderModalContent();
+}
+function renderModal(){
+  const m=filteredMerchants[currentModalIndex]; if(!m) return;
+  const color=getCohortColor(m.cohort);
+  const name=$('modal-merchant-name'); if(name) name.textContent=m.name||'';
+  const meta=$('modal-merchant-meta'); if(meta) meta.innerHTML=`${escapeHtml(m.address||'')} &nbsp;·&nbsp; <span style="background:${color.bg};color:${color.text};padding:2px 8px;border-radius:99px;font-size:11px;">${escapeHtml(m.cohort||'')}</span> &nbsp;·&nbsp; ${m.avg_rating?m.avg_rating+' ★':''}`;
+  const nav=$('modal-nav-label'); if(nav) nav.textContent=`${currentModalIndex+1} of ${filteredMerchants.length}`;
+  switchModalTab(currentModalTab);
+}
+function renderModalContent(){
+  const m=filteredMerchants[currentModalIndex]; if(!m) return;
+  const content={whatsapp:m.whatsapp_message||'No WhatsApp message generated',push:m.push_notification||'No push notification generated',banner:m.banner_copy||'No banner copy generated'};
+  const el=$('modal-content'); if(el) el.textContent=content[currentModalTab];
+}
+
+async function processBatchMerchant(merchant, index) {
+  const startTime = Date.now();
+  $('batchCurrentCard').classList.remove('hidden');
+  renderBatchSteps();
+
+  const labelEl=$('current-result-label');
+  if(labelEl){labelEl.style.display='block';const n=$('current-result-n');if(n)n.textContent=index+1;const tot=$('current-result-total');if(tot)tot.textContent=uploadedMerchants.length;const nm=$('current-result-name');if(nm)nm.textContent=merchant.name||merchant.phone;}
+  const noteEl=$('current-result-note'); if(noteEl) noteEl.style.display='block';
+
+  setBatchStep(0,'active');
+  await typewriterFill('batch-phone', merchant.phone);
+  await typewriterFill('batch-name',  merchant.name||'');
+  await typewriterFill('batch-id',    merchant.merchant_id);
+  await typewriterFill('batch-lat',   merchant.latitude);
+  await typewriterFill('batch-lng',   merchant.longitude);
+  setBatchStep(0,'done'); setBatchStep(1,'done');
+
+  setBatchStep(2,'active');
+  const place = await apiPost('/api/batch/find-place-by-coordinates', {
+    phone:       merchant.phone,
+    name:        merchant.name||null,
+    latitude:    merchant.latitude,
+    longitude:   merchant.longitude,
+    merchant_id: merchant.merchant_id,
+  });
+  setBatchStep(2,'done',`Found: ${place.name} (via ${place.matchedBy||'search'})`);
+
+  setBatchStep(3,'active');
+  const reviewsResult = await apiPost('/api/google/reviews', {
+    placeId:place.placeId, sortOrder:'most_relevant',
+    placeMetadata:{name:place.name,formattedAddress:place.formattedAddress,rating:place.rating,totalReviews:place.totalReviews},
+  });
+  const reviews = reviewsResult.reviews||[];
+  const placeMetadata = reviewsResult.placeMetadata||place;
+  setBatchStep(3,'done',`${reviews.length} reviews`);
+
+  setBatchStep(4,'active');
+  const out = await apiPost('/api/generate-copy',{reviews,placeMetadata});
+  const angleMeta = ANGLES[out.classification?.angle]||{name:out.classification?.angle,tag:'',color:'#666'};
+  setBatchStep(4,'done',`Angle: ${angleMeta.name}`);
+
+  const batchResultsArea=$('batchResultsArea'); batchResultsArea.innerHTML='';
+  const tmpWrap=document.createElement('div'); tmpWrap.id='batchLiveResult';
+
+  const pcDiv=document.createElement('div'); pcDiv.className='place-card';
+  pcDiv.innerHTML=`<div class="pname">${escapeHtml(place.name)}</div><div class="paddr">${escapeHtml(place.formattedAddress)}</div>
+    <div class="pmeta"><span>★ <strong>${place.rating??'—'}</strong></span><span><strong>${place.totalReviews??0}</strong> total reviews on Google</span>
+    ${place.matchedBy?`<span style="color:#16a34a;font-weight:600;">matched via ${place.matchedBy}</span>`:''}
+    ${place.lowConfidence?`<span style="color:#f59e0b;font-weight:600;">⚠ low confidence</span>`:''}</div>`;
+  tmpWrap.appendChild(pcDiv);
+
+  const summaryCard=document.createElement('div'); summaryCard.className='card';
+  summaryCard.innerHTML=`<div class="results-header"><div class="merchant-name">${escapeHtml(place.name)}</div><div class="merchant-addr">${escapeHtml(place.formattedAddress)}</div>
+    <div style="margin:6px 0;"><span class="chip">★ ${place.rating??'—'}</span> <span class="chip">${place.totalReviews??0} reviews</span> <span class="chip primary">Angle: ${angleMeta.name}</span></div></div>
+    <div class="summary-box">${escapeHtml(out.classification.summary||'')}</div>`;
+  tmpWrap.appendChild(summaryCard);
+
+  const copyCard=document.createElement('div'); copyCard.className='card';
+  const banner=out.copy?.banner||{};
+  copyCard.innerHTML=`<h2>Channel Creative Preview</h2><div class="accordion-copy-grid" style="margin-top:10px;">
+    <div class="accordion-copy-cell"><div class="accordion-copy-label">WhatsApp</div><div class="accordion-copy-body">${escapeHtml(out.copy?.whatsapp||'—')}</div></div>
+    <div class="accordion-copy-cell"><div class="accordion-copy-label">Push</div><div class="accordion-copy-body">${escapeHtml(out.copy?.push||'—')}</div></div>
+    <div class="accordion-copy-cell"><div class="accordion-copy-label">Banner</div><div class="accordion-copy-body">${escapeHtml((banner.text||'')+(banner.sub?'\n'+banner.sub:''))}</div></div>
+  </div>`;
+  tmpWrap.appendChild(copyCard);
+  batchResultsArea.appendChild(tmpWrap);
+  tmpWrap.scrollIntoView({behavior:'smooth',block:'start'});
+
+  setBatchStep(5,'active');
+  const bannerText=(banner.text||'')+(banner.sub?'\n'+banner.sub:'');
+  await apiPost('/api/batch/save-result',{
+    session_id:String(batchSessionId), merchant_id:merchant.merchant_id, name:place.name,
+    address:place.formattedAddress, latitude:merchant.latitude, longitude:merchant.longitude,
+    cohort:out.classification.angle, cohort_tagline:angleMeta.tag||'',
+    avg_rating:place.rating, total_reviews:place.totalReviews, reviews_analyzed:reviews.length,
+    analysis_summary:out.classification?.summary||'', key_insights:out.classification?.issues||[],
+    whatsapp_message:out.copy?.whatsapp||'', push_notification:out.copy?.push||'',
+    banner_copy:bannerText, status:'success', error_message:null,
+  });
+  setBatchStep(5,'done','Saved to report');
+
+  batchTimings.push(Date.now()-startTime); batchSuccess++;
+  addCompletedMerchant({
+    merchant_id:merchant.merchant_id, name:place.name, address:place.formattedAddress,
+    cohort:out.classification.angle, avg_rating:place.rating, status:'success',
+    error_message:null, whatsapp_message:out.copy?.whatsapp||'',
+    push_notification:out.copy?.push||'', banner_copy:bannerText,
+  });
+  return out;
+}
+
+function toggleBatchPause(){batchIsPaused=!batchIsPaused;$('batchPauseBtn').textContent=batchIsPaused?'Resume':'Pause';}
+function stopBatch(){batchIsStopped=true;$('batchStopBtn').textContent='Stopping…';$('batchStopBtn').disabled=true;}
+
+async function compileExcelAndDownload() {
+  if(typeof XLSX==='undefined'){alert('Excel library not loaded.');return;}
+  if(!completedMerchants||completedMerchants.length===0){alert('No results to export.');return;}
+  const total=completedMerchants.length,successful=completedMerchants.filter(r=>r.status==='success').length,failed=completedMerchants.filter(r=>r.status==='failed').length;
+  const dateStr=new Date().toISOString().slice(0,10);
+  const headers=['Merchant ID','Business Name','Address','Latitude','Longitude','Google Rating','Cohort','WhatsApp Message','Push Notification','Banner Copy','Status','Error Message'];
+  const rows=completedMerchants.map(m=>[m.merchant_id||'',m.name||'',m.address||'',m.latitude??'',m.longitude??'',m.avg_rating??'',m.cohort||'',m.whatsapp_message||'',m.push_notification||'',m.banner_copy||'',m.status==='success'?'Success':'Failed',m.error_message||'']);
+  const ws1=XLSX.utils.aoa_to_sheet([headers,...rows]);ws1['!cols']=[{wch:15},{wch:30},{wch:40},{wch:12},{wch:12},{wch:10},{wch:20},{wch:60},{wch:40},{wch:40},{wch:12},{wch:30}];
+  const angleCounts={};completedMerchants.forEach(m=>{if(m.status==='success'&&m.cohort)angleCounts[m.cohort]=(angleCounts[m.cohort]||0)+1;});
+  const angleRows=Object.entries(angleCounts).sort((a,b)=>b[1]-a[1]).map(([angle,count])=>[(ANGLES[angle]||{name:angle}).name,count,`${Math.round((count/(successful||1))*100)}%`]);
+  const summaryData=[['Pi Commerce Batch Analysis Report'],[`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`],[],['BATCH STATISTICS'],['Total Merchants Processed',total],['Successful',successful],['Failed',failed],['Success Rate',`${Math.round((successful/(total||1))*100)}%`],[],['ANGLE DISTRIBUTION'],['Angle','Count','Percentage'],...angleRows];
+  const ws2=XLSX.utils.aoa_to_sheet(summaryData);ws2['!cols']=[{wch:35},{wch:15},{wch:15}];
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws1,'Merchant Results');XLSX.utils.book_append_sheet(wb,ws2,'Summary');
+  XLSX.writeFile(wb,`Pi_Commerce_Report_${dateStr}.xlsx`);
+}
+
+async function handleExcelDownload(){
+  const btn=$('download-excel-btn');if(btn){btn.textContent='Preparing…';btn.disabled=true;}
+  try{await compileExcelAndDownload();if(btn){btn.textContent='✓ Downloaded';btn.style.background='#aaa';}}
+  catch(e){console.error('[EXPORT] Failed:',e);if(btn){btn.textContent='Download Excel Report ↓';btn.disabled=false;}}
+}
+
+async function startBatch() {
+  if(uploadedMerchants.length===0) return;
+  batchSessionId=Date.now(); batchIsPaused=false; batchIsStopped=false;
+  batchSuccess=0; batchFail=0; batchTimings=[]; completedMerchants=[]; filteredMerchants=[]; currentPage=1;
+  $('batchStartRow').classList.add('hidden'); $('batchRunningRow').classList.remove('hidden');
+  $('batchCompleteBanner').style.display='none'; $('batchResultsArea').innerHTML='';
+  $('current-result-label').style.display='none'; $('current-result-note').style.display='none';
+  $('completed-table-section').style.display='none'; $('completed-tbody').innerHTML='';
+  const cf=$('filter-cohort'); if(cf) while(cf.options.length>1) cf.remove(1);
+  updateStatsBar(); renderBatchTable(uploadedMerchants);
+
+  for(let i=0;i<uploadedMerchants.length;i++){
+    if(batchIsStopped) break;
+    while(batchIsPaused) await new Promise(r=>setTimeout(r,400));
+    updateBatchProgress(i,uploadedMerchants.length,batchSuccess,batchFail,batchTimings);
+    setBatchRowStatus(i,'processing');
+    try{
+      await processBatchMerchant(uploadedMerchants[i],i);
+      setBatchRowStatus(i,'done');
+    }catch(err){
+      batchFail++; console.error(`[BATCH ${uploadedMerchants[i].merchant_id}] Failed:`,err.message);
+      setBatchRowStatus(i,'failed'); setBatchStep&&setBatchStep(Math.min(5,BATCH_STEPS.length-1),'error',err.message);
+      addCompletedMerchant({merchant_id:uploadedMerchants[i].merchant_id,name:uploadedMerchants[i].name||'',address:'',cohort:null,avg_rating:null,status:'failed',error_message:err.message,whatsapp_message:'',push_notification:'',banner_copy:''});
+      try{await apiPost('/api/batch/save-result',{session_id:String(batchSessionId),merchant_id:uploadedMerchants[i].merchant_id,name:uploadedMerchants[i].name||'',status:'failed',error_message:err.message});}catch{}
     }
+    updateBatchProgress(i+1,uploadedMerchants.length,batchSuccess,batchFail,batchTimings);
+    if(i<uploadedMerchants.length-1&&!batchIsStopped) await new Promise(r=>setTimeout(r,1500));
   }
 
-  function parseCSV(text) {
-    const lines = text.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    return lines.slice(1).filter(line => line.trim()).map(line => {
-      const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
-      const obj = {};
-      headers.forEach((h, i) => obj[h] = values[i] || '');
-      return obj;
-    });
-  }
-
-  function renderUploadPreview(merchants) {
-    const section = $('preview-table-section');
-    const tbody   = $('preview-tbody');
-    const preview = merchants.slice(0, 5);
-    tbody.innerHTML = preview.map((m, i) => `
-      <tr style="background:${i % 2 === 0 ? '#fff' : '#f9fafb'}">
-        <td style="padding:8px 12px; font-size:13px;">${i + 1}</td>
-        <td style="padding:8px 12px; font-size:13px;">${escapeHtml(String(m.merchant_id))}</td>
-        <td style="padding:8px 12px; font-size:13px; font-weight:500;">${escapeHtml(m.name)}</td>
-        <td style="padding:8px 12px; font-size:13px; color:#666;">${escapeHtml(String(m.latitude ?? ''))}</td>
-        <td style="padding:8px 12px; font-size:13px; color:#666;">${escapeHtml(String(m.longitude ?? ''))}</td>
-        <td style="padding:8px 12px;">
-          <span style="background:#f0f0ee; color:#888; font-size:11px; padding:2px 10px; border-radius:99px;">Pending</span>
-        </td>
-      </tr>
-    `).join('');
-    $('preview-count-label').textContent =
-      `Showing ${Math.min(5, merchants.length)} of ${merchants.length} merchants · All ${merchants.length} will be processed`;
-    section.style.display = 'block';
-  }
-
-  function updateStartButton() {
-    const btn = $('batchStartBtn');
-    if (uploadedMerchants.length > 0) {
-      btn.disabled = false;
-      btn.title = '';
-    } else {
-      btn.disabled = true;
-      btn.title = 'Upload a file to begin';
-    }
-  }
-
-  function showBatchUploadError(msg) {
-    alert(msg);
-  }
-
-  async function apiGet(path) {
-    const r = await fetch(path);
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-    return data;
-  }
-
-  function renderBatchTable(merchants) {
-    const tbody = $('batchTableBody');
-    tbody.innerHTML = '';
-    merchants.forEach((m, i) => {
-      const tr = document.createElement('tr');
-      tr.id = `brow-${i}`;
-      tr.innerHTML = `
-        <td>${i + 1}</td>
-        <td>${escapeHtml(m.merchant_id ?? '—')}</td>
-        <td>${escapeHtml(m.name ?? '—')}</td>
-        <td>${escapeHtml(String(m.latitude ?? ''))}</td>
-        <td>${escapeHtml(String(m.longitude ?? ''))}</td>
-        <td><span class="batch-row-status pending" id="bstatus-${i}">Pending</span></td>`;
-      tbody.appendChild(tr);
-    });
-  }
-
-  function setBatchRowStatus(index, status, label) {
-    const row = $(`brow-${index}`);
-    const pill = $(`bstatus-${index}`);
-    if (!pill) return;
-    const labels = { pending:'Pending', processing:'Processing…', done:'✓ Done', failed:'✗ Failed' };
-    pill.className = `batch-row-status ${status}`;
-    pill.textContent = label || labels[status] || status;
-    if (row) row.className = status === 'processing' ? 'processing' : status === 'done' ? 'done' : status === 'failed' ? 'failed' : '';
-    if (status === 'processing') row?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
-  // ── Progress bar helpers ─────────────────────────────────────────
-  function updateBatchProgress(done, total, success, fail, timings) {
-    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-    $('batchProgressFill').style.width = pct + '%';
-    let eta = '';
-    if (timings.length > 0 && done < total) {
-      const avg = timings.reduce((a, b) => a + b, 0) / timings.length;
-      const rem = Math.round((avg * (total - done)) / 60000);
-      eta = ` · ~${rem} min remaining`;
-    }
-    $('batchProgressLabel').textContent =
-      `${done} of ${total} complete · ${fail} failed${eta}`;
-    $('batchRunningLabel').textContent =
-      `Processing ${done + 1} of ${total}…`;
-  }
-
-  // ── Batch pipeline steps renderer ────────────────────────────────
-  const BATCH_STEPS = [
-    'Loading merchant from CSV…',
-    'Building search query from coordinates…',
-    'Finding place via Google Places API…',
-    'Fetching reviews (max 5)…',
-    'Classifying merchant & generating copy…',
-    'Capturing creatives & saving to report…',
-  ];
-
-  function renderBatchSteps() {
-    const c = $('batchStepsContainer');
-    c.innerHTML = '';
-    BATCH_STEPS.forEach((label, i) => {
-      const div = document.createElement('div');
-      div.className = 'step';
-      div.id = `bstep-${i}`;
-      div.innerHTML = `<span class="step-icon" id="bstep-icon-${i}">○</span><span class="step-label" id="bstep-lbl-${i}">${label}</span>`;
-      c.appendChild(div);
-    });
-  }
-
-  function setBatchStep(index, state, sublabel) {
-    const icon = $(`bstep-icon-${index}`);
-    const lbl  = $(`bstep-lbl-${index}`);
-    if (!icon) return;
-    const ICONS = { pending:'○', active:'⟳', done:'✓', error:'✗' };
-    const CLASSES = { pending:'', active:' active', done:' done', error:' error' };
-    icon.textContent = ICONS[state] || '○';
-    icon.className = 'step-icon' + (CLASSES[state] || '');
-    if (sublabel && lbl) lbl.innerHTML = `${BATCH_STEPS[index]} <span class="step-sub">${escapeHtml(sublabel)}</span>`;
-  }
-
-  // ── Typewriter fill ───────────────────────────────────────────────
-  async function typewriterFill(fieldId, text) {
-    const el = $(fieldId);
-    if (!el) return;
-    el.value = '';
-    for (const char of String(text ?? '')) {
-      el.value += char;
-      await new Promise(r => setTimeout(r, 30));
-    }
-  }
-
-  // ── Capture card as image ─────────────────────────────────────────
-  async function captureCard(el) {
-    if (!el || typeof html2canvas === 'undefined') return null;
-    try {
-      const canvas = await html2canvas(el, {
-        useCORS: true, allowTaint: true, scale: 2, backgroundColor: '#ffffff',
-      });
-      return canvas.toDataURL('image/png');
-    } catch { return null; }
-  }
-
-  // ── Paginated results table (CHANGE 4) ──────────────────────────
-  const PAGE_SIZE = 20;
-  let filteredMerchants = [];
-  let currentPage = 1;
-  let searchDebounceTimer = null;
-
-  const COHORT_COLORS = {
-    'silent churn':       { bg: '#DBEAFE', text: '#1E40AF' },
-    'negative':           { bg: '#FEE2E2', text: '#991B1B' },
-    'hidden ceiling':     { bg: '#FEF9C3', text: '#92400E' },
-    'acquisition_gap':    { bg: '#DCFCE7', text: '#166534' },
-    'retention_winback':  { bg: '#DCFCE7', text: '#166534' },
-    'frequency':          { bg: '#FFEDD5', text: '#9A3412' },
-    'off_peak_imbalance': { bg: '#FCE7F3', text: '#9D174D' },
-    'competitive_loss':   { bg: '#FEE2E2', text: '#991B1B' },
-    'personalization_gap':{ bg: '#EDE9FE', text: '#5B21B6' },
-  };
-
-  function getCohortColor(cohort) {
-    if (!cohort) return { bg: '#F0F0EE', text: '#888' };
-    return COHORT_COLORS[cohort.toLowerCase()] || { bg: '#F0F0EE', text: '#555' };
-  }
-
-  function addCompletedMerchant(merchant) {
-    completedMerchants.push(merchant);
-    updateCohortFilter();
-    updateStatsBar();
-    const totalPages = Math.ceil(filteredMerchants.length / PAGE_SIZE);
-    const isOnLastPage = currentPage >= totalPages;
-    applyFilters(false);
-    const newTotalPages = Math.ceil(filteredMerchants.length / PAGE_SIZE);
-    if (isOnLastPage) {
-      currentPage = newTotalPages;
-      renderTablePage();
-    } else {
-      const badge = $('new-results-badge');
-      const current = parseInt(badge.dataset.count || '0') + 1;
-      badge.dataset.count = current;
-      badge.textContent = `↓ ${current} new result${current > 1 ? 's' : ''}`;
-      badge.style.display = 'inline-block';
-    }
-    $('completed-table-section').style.display = 'block';
-  }
-
-  function applyFilters(resetPage = true) {
-    const search = ($('table-search')?.value || '').toLowerCase();
-    const cohort = $('filter-cohort')?.value || '';
-    const status = $('filter-status')?.value || '';
-    filteredMerchants = completedMerchants.filter(m => {
-      const matchSearch = !search ||
-        (m.name || '').toLowerCase().includes(search) ||
-        String(m.merchant_id).toLowerCase().includes(search);
-      const matchCohort = !cohort || (m.cohort || '').toLowerCase() === cohort.toLowerCase();
-      const matchStatus = !status || m.status === status;
-      return matchSearch && matchCohort && matchStatus;
-    });
-    const clearBtn = $('clear-filters-btn');
-    if (clearBtn) clearBtn.style.display = (search || cohort || status) ? 'inline' : 'none';
-    if (resetPage) currentPage = 1;
-    renderTablePage();
-  }
-
-  function clearFilters() {
-    const s = $('table-search'); if (s) s.value = '';
-    const c = $('filter-cohort'); if (c) c.value = '';
-    const f = $('filter-status'); if (f) f.value = '';
-    applyFilters();
-  }
-
-  function debounceSearch() {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(() => applyFilters(), 200);
-  }
-
-  function renderTablePage() {
-    const tbody = $('completed-tbody');
-    if (!tbody) return;
-    const total = filteredMerchants.length;
-    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    currentPage = Math.min(currentPage, totalPages);
-    const start = (currentPage - 1) * PAGE_SIZE;
-    const end   = Math.min(start + PAGE_SIZE, total);
-    const pageData = filteredMerchants.slice(start, end);
-
-    tbody.innerHTML = pageData.map((m, i) => {
-      const rowNum  = start + i + 1;
-      const color   = getCohortColor(m.cohort);
-      const isDone  = m.status === 'success';
-      const rowBg   = m.status === 'failed' ? '#FFF5F5' : (i % 2 === 0 ? '#fff' : '#F9FAFB');
-      return `
-        <tr style="background:${rowBg}; cursor:default;"
-            onmouseover="this.style.background='#EFF6FF'"
-            onmouseout="this.style.background='${rowBg}'">
-          <td style="padding:10px 12px; font-size:13px; color:#888;">${rowNum}</td>
-          <td style="padding:10px 12px; font-size:12px; color:#888;">${escapeHtml(String(m.merchant_id || ''))}</td>
-          <td style="padding:10px 12px; font-size:13px; font-weight:500;">${escapeHtml(m.name || '')}</td>
-          <td style="padding:10px 12px;">
-            <span style="background:${color.bg}; color:${color.text}; font-size:11px; padding:3px 10px; border-radius:99px; font-weight:500; white-space:nowrap;">
-              ${escapeHtml(m.cohort || '—')}
-            </span>
-          </td>
-          <td style="padding:10px 12px; font-size:13px;">${m.avg_rating ? m.avg_rating + ' ★' : '—'}</td>
-          <td style="padding:10px 12px;">
-            ${isDone
-              ? '<span style="color:#16A34A; font-size:13px;">✓ Done</span>'
-              : '<span style="color:#DC2626; font-size:13px;">✗ Failed</span>'
-            }
-          </td>
-          <td style="padding:10px 12px;">
-            <button onclick="openPreviewModal(${start + i})"
-                    style="padding:4px 12px; font-size:12px; border:1px solid #ddd; border-radius:6px; background:#fff; cursor:pointer; color:#003580; font-weight:500;">
-              Preview
-            </button>
-          </td>
-        </tr>`;
-    }).join('');
-
-    const info = $('pagination-info');
-    if (info) info.textContent = total === 0 ? 'No results' :
-      `Showing ${start + 1}–${end} of ${total} merchant${total !== 1 ? 's' : ''}` +
-      (total < completedMerchants.length ? ' (filtered)' : '');
-
-    const pi = $('page-indicator');
-    if (pi) pi.textContent = `Page ${currentPage} of ${totalPages}`;
-
-    const prev = $('prev-page-btn'); if (prev) prev.disabled = currentPage <= 1;
-    const next = $('next-page-btn'); if (next) next.disabled = currentPage >= totalPages;
-  }
-
-  function changePage(dir) {
-    const total = filteredMerchants.length;
-    const totalPages = Math.ceil(total / PAGE_SIZE);
-    currentPage = Math.max(1, Math.min(currentPage + dir, totalPages));
-    renderTablePage();
-    const badge = $('new-results-badge');
-    if (badge) { badge.style.display = 'none'; badge.dataset.count = '0'; }
-  }
-
-  function goToLastPage() {
-    currentPage = Math.ceil(filteredMerchants.length / PAGE_SIZE);
-    renderTablePage();
-    const badge = $('new-results-badge');
-    if (badge) { badge.style.display = 'none'; badge.dataset.count = '0'; }
-  }
-
-  function updateCohortFilter() {
-    const select = $('filter-cohort');
-    if (!select) return;
-    const existing = Array.from(select.options).map(o => o.value);
-    completedMerchants.forEach(m => {
-      if (m.cohort && !existing.includes(m.cohort)) {
-        const opt = document.createElement('option');
-        opt.value = m.cohort;
-        opt.textContent = m.cohort;
-        select.appendChild(opt);
-      }
-    });
-  }
-
-  function updateStatsBar() {
-    const done   = completedMerchants.filter(m => m.status === 'success').length;
-    const failed = completedMerchants.filter(m => m.status === 'failed').length;
-    const total  = completedMerchants.length;
-    const d = $('stat-done');   if (d) d.textContent = `✓ ${done} Done`;
-    const f = $('stat-failed'); if (f) f.textContent = `✗ ${failed} Failed`;
-    const t = $('stat-total');  if (t) t.textContent = `Total: ${total}`;
-  }
-
-  // ── Preview modal (CHANGE 4D) ─────────────────────────────────────
-  let currentModalIndex = 0;
-  let currentModalTab   = 'whatsapp';
-
-  function openPreviewModal(index) {
-    currentModalIndex = index;
-    currentModalTab   = 'whatsapp';
-    renderModal();
-    const overlay = $('preview-modal-overlay');
-    overlay.style.display = 'flex';
-    document.addEventListener('keydown', handleModalKeydown);
-  }
-
-  function closePreviewModal() {
-    $('preview-modal-overlay').style.display = 'none';
-    document.removeEventListener('keydown', handleModalKeydown);
-  }
-
-  function handleModalKeydown(e) {
-    if (e.key === 'Escape')      closePreviewModal();
-    if (e.key === 'ArrowRight')  navigateModal(1);
-    if (e.key === 'ArrowLeft')   navigateModal(-1);
-  }
-
-  function navigateModal(dir) {
-    const total = filteredMerchants.length;
-    currentModalIndex = Math.max(0, Math.min(currentModalIndex + dir, total - 1));
-    renderModal();
-  }
-
-  function switchModalTab(tab) {
-    currentModalTab = tab;
-    ['whatsapp', 'push', 'banner'].forEach(t => {
-      const btn = $(`modal-tab-${t}`);
-      if (btn) {
-        btn.style.background = t === tab ? '#1a1a1a' : '#fff';
-        btn.style.color      = t === tab ? '#fff'    : '#333';
-      }
-    });
-    renderModalContent();
-  }
-
-  function renderModal() {
-    const m = filteredMerchants[currentModalIndex];
-    if (!m) return;
-    const color = getCohortColor(m.cohort);
-    const name = $('modal-merchant-name');
-    if (name) name.textContent = m.name;
-    const meta = $('modal-merchant-meta');
-    if (meta) meta.innerHTML =
-      `${escapeHtml(m.address || '')} &nbsp;·&nbsp; ` +
-      `<span style="background:${color.bg}; color:${color.text}; padding:2px 8px; border-radius:99px; font-size:11px;">${escapeHtml(m.cohort || '')}</span>` +
-      ` &nbsp;·&nbsp; ${m.avg_rating ? m.avg_rating + ' ★' : ''}`;
-    const nav = $('modal-nav-label');
-    if (nav) nav.textContent = `${currentModalIndex + 1} of ${filteredMerchants.length}`;
-    switchModalTab(currentModalTab);
-  }
-
-  function renderModalContent() {
-    const m = filteredMerchants[currentModalIndex];
-    if (!m) return;
-    const content = {
-      whatsapp: m.whatsapp_message  || 'No WhatsApp message generated',
-      push:     m.push_notification || 'No push notification generated',
-      banner:   m.banner_copy       || 'No banner copy generated'
-    };
-    const el = $('modal-content');
-    if (el) el.textContent = content[currentModalTab];
-  }
-
-  // ── Process one merchant ─────────────────────────────────────────
-  async function processBatchMerchant(merchant, index) {
-    const startTime = Date.now();
-    $('batchCurrentCard').classList.remove('hidden');
-    renderBatchSteps();
-
-    // Update current result label (CHANGE 5)
-    const labelEl = $('current-result-label');
-    if (labelEl) {
-      labelEl.style.display = 'block';
-      const n = $('current-result-n'); if (n) n.textContent = index + 1;
-      const tot = $('current-result-total'); if (tot) tot.textContent = uploadedMerchants.length;
-      const nm = $('current-result-name'); if (nm) nm.textContent = merchant.name;
-    }
-    const noteEl = $('current-result-note');
-    if (noteEl) noteEl.style.display = 'block';
-
-    // Steps 0 & 1 — typewriter fill (instant UI)
-    setBatchStep(0, 'active');
-    await typewriterFill('batch-name', merchant.name);
-    await typewriterFill('batch-id', merchant.merchant_id);
-    await typewriterFill('batch-lat', merchant.latitude);
-    await typewriterFill('batch-lng', merchant.longitude);
-    setBatchStep(0, 'done');
-    setBatchStep(1, 'done');
-
-    let place, reviews, placeMetadata, out;
-
-    // Step 2 — find place by coordinates
-    setBatchStep(2, 'active');
-    place = await apiPost('/api/batch/find-place-by-coordinates', {
-      name: merchant.name,
-      latitude: merchant.latitude,
-      longitude: merchant.longitude,
-      merchant_id: merchant.merchant_id,
-    });
-    setBatchStep(2, 'done', `Found: ${place.name}`);
-
-    // Step 3 — fetch reviews
-    setBatchStep(3, 'active');
-    const reviewsResult = await apiPost('/api/google/reviews', {
-      placeId: place.placeId,
-      sortOrder: 'most_relevant',
-      placeMetadata: {
-        name: place.name,
-        formattedAddress: place.formattedAddress,
-        rating: place.rating,
-        totalReviews: place.totalReviews,
-      },
-    });
-    reviews = reviewsResult.reviews || [];
-    placeMetadata = reviewsResult.placeMetadata || place;
-    setBatchStep(3, 'done', `${reviews.length} reviews`);
-
-    // Step 4 — classify + generate copy
-    setBatchStep(4, 'active');
-    out = await apiPost('/api/generate-copy', { reviews, placeMetadata });
-    const angleLabel = (ANGLES[out.classification?.angle] || { name: out.classification?.angle }).name;
-    setBatchStep(4, 'done', `Angle: ${angleLabel}`);
-
-    // Render results in the dedicated batch results area using cloned result cards
-    const batchResultsArea = $('batchResultsArea');
-    batchResultsArea.innerHTML = '';
-    const tmpWrap = document.createElement('div');
-    tmpWrap.id = 'batchLiveResult';
-
-    // Place card
-    const pcDiv = document.createElement('div');
-    pcDiv.className = 'place-card';
-    pcDiv.innerHTML = `
-      <div class="pname">${escapeHtml(place.name)}</div>
-      <div class="paddr">${escapeHtml(place.formattedAddress)}</div>
-      <div class="pmeta">
-        <span>★ <strong>${place.rating ?? '—'}</strong></span>
-        <span><strong>${place.totalReviews ?? 0}</strong> total reviews on Google</span>
-      </div>`;
-    tmpWrap.appendChild(pcDiv);
-
-    // Results summary card
-    const angleMeta = ANGLES[out.classification.angle] || { name: out.classification.angle, color: '#666' };
-    const summaryCard = document.createElement('div');
-    summaryCard.className = 'card';
-    summaryCard.innerHTML = `
-      <div class="results-header">
-        <div class="merchant-name">${escapeHtml(place.name)}</div>
-        <div class="merchant-addr">${escapeHtml(place.formattedAddress)}</div>
-        <div style="margin:6px 0;">
-          <span class="chip">★ ${place.rating ?? '—'}</span>
-          <span class="chip">${place.totalReviews ?? 0} reviews</span>
-          <span class="chip primary">Angle: ${angleMeta.name}</span>
-        </div>
-      </div>
-      <div class="summary-box">${escapeHtml(out.classification.summary || '')}</div>`;
-    tmpWrap.appendChild(summaryCard);
-
-    // Channel copy preview (simplified inline, all 3 channels)
-    const copyCard = document.createElement('div');
-    copyCard.className = 'card';
-    copyCard.id = 'batchCopyCard';
-    const banner = out.copy?.banner || {};
-    copyCard.innerHTML = `
-      <h2>Channel Creative Preview</h2>
-      <div class="accordion-copy-grid" style="margin-top:10px;">
-        <div class="accordion-copy-cell" id="batch-wa-cell">
-          <div class="accordion-copy-label">WhatsApp</div>
-          <div class="accordion-copy-body">${escapeHtml(out.copy?.whatsapp || '—')}</div>
-        </div>
-        <div class="accordion-copy-cell" id="batch-push-cell">
-          <div class="accordion-copy-label">Push</div>
-          <div class="accordion-copy-body">${escapeHtml(out.copy?.push || '—')}</div>
-        </div>
-        <div class="accordion-copy-cell" id="batch-banner-cell">
-          <div class="accordion-copy-label">Banner</div>
-          <div class="accordion-copy-body">${escapeHtml((banner.text || '') + (banner.sub ? '\n' + banner.sub : ''))}</div>
-        </div>
-      </div>`;
-    tmpWrap.appendChild(copyCard);
-    batchResultsArea.appendChild(tmpWrap);
-    tmpWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    // Step 5 — save text results
-    setBatchStep(5, 'active');
-    const bannerObj = out.copy?.banner || {};
-    const bannerText = (bannerObj.text || '') + (bannerObj.sub ? '\n' + bannerObj.sub : '');
-    await apiPost('/api/batch/save-result', {
-      session_id:       String(batchSessionId),
-      merchant_id:      merchant.merchant_id,
-      name:             place.name,
-      address:          place.formattedAddress,
-      latitude:         merchant.latitude,
-      longitude:        merchant.longitude,
-      cohort:           out.classification.angle,
-      cohort_tagline:   angleMeta.tag || '',
-      avg_rating:       place.rating,
-      total_reviews:    place.totalReviews,
-      reviews_analyzed: reviews.length,
-      analysis_summary: out.classification?.summary || '',
-      key_insights:     out.classification?.issues || [],
-      whatsapp_message: out.copy?.whatsapp || '',
-      push_notification:out.copy?.push     || '',
-      banner_copy:      bannerText,
-      status:           'success',
-      error_message:    null,
-    });
-    setBatchStep(5, 'done', 'Saved to report');
-
-    batchTimings.push(Date.now() - startTime);
-    batchSuccess++;
-    console.log(`[BATCH ${merchant.merchant_id}] Done ✓`);
-
-    const bannerObj2 = out.copy?.banner || {};
-    const bannerStr2 = (bannerObj2.text || '') + (bannerObj2.sub ? '\n' + bannerObj2.sub : '');
-    addCompletedMerchant({
-      merchant_id:      merchant.merchant_id,
-      name:             place.name,
-      address:          place.formattedAddress,
-      cohort:           out.classification.angle,
-      avg_rating:       place.rating,
-      status:           'success',
-      error_message:    null,
-      whatsapp_message: out.copy?.whatsapp || '',
-      push_notification:out.copy?.push     || '',
-      banner_copy:      bannerStr2,
-    });
-    return out;
-  }
-
-  // ── Pause / Stop controls ─────────────────────────────────────────
-  function toggleBatchPause() {
-    batchIsPaused = !batchIsPaused;
-    $('batchPauseBtn').textContent = batchIsPaused ? 'Resume' : 'Pause';
-  }
-  function stopBatch() {
-    batchIsStopped = true;
-    $('batchStopBtn').textContent = 'Stopping…';
-    $('batchStopBtn').disabled = true;
-  }
-
-  // ── Excel export ──────────────────────────────────────────────────
-  async function compileExcelAndDownload() {
-    if (typeof XLSX === 'undefined') {
-      alert('Excel library not loaded. Please refresh the page and try again.');
-      return;
-    }
-
-    if (!completedMerchants || completedMerchants.length === 0) {
-      alert('No results to export.');
-      return;
-    }
-
-    const total      = completedMerchants.length;
-    const successful = completedMerchants.filter(r => r.status === 'success').length;
-    const failed     = completedMerchants.filter(r => r.status === 'failed').length;
-    const dateStr    = new Date().toISOString().slice(0, 10);
-
-    console.log(`[EXPORT] Building Excel with ${total} merchants…`);
-
-    const headers = [
-      'Merchant ID', 'Business Name', 'Address', 'Latitude', 'Longitude',
-      'Google Rating', 'Cohort', 'WhatsApp Message',
-      'Push Notification', 'Banner Copy',
-      'Status', 'Error Message',
-    ];
-
-    const rows = completedMerchants.map(m => [
-      m.merchant_id       || '',
-      m.name              || '',
-      m.address           || '',
-      m.latitude          ?? '',
-      m.longitude         ?? '',
-      m.avg_rating        ?? '',
-      m.cohort            || '',
-      m.whatsapp_message  || '',
-      m.push_notification || '',
-      m.banner_copy       || '',
-      m.status === 'success' ? 'Success' : 'Failed',
-      m.error_message     || '',
-    ]);
-
-    const ws1 = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    ws1['!cols'] = [
-      { wch: 15 }, { wch: 30 }, { wch: 40 }, { wch: 12 }, { wch: 12 },
-      { wch: 10 }, { wch: 20 }, { wch: 60 }, { wch: 40 }, { wch: 40 },
-      { wch: 12 }, { wch: 30 },
-    ];
-
-    const angleCounts = {};
-    completedMerchants.forEach(m => {
-      if (m.status === 'success' && m.cohort) {
-        angleCounts[m.cohort] = (angleCounts[m.cohort] || 0) + 1;
-      }
-    });
-    const angleRows = Object.entries(angleCounts)
-      .sort((a, b) => b[1] - a[1])
-      .map(([angle, count]) => [
-        (ANGLES[angle] || { name: angle }).name,
-        count,
-        `${Math.round((count / (successful || 1)) * 100)}%`,
-      ]);
-
-    const summaryData = [
-      ['Pi Commerce Batch Analysis Report'],
-      [`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`],
-      [],
-      ['BATCH STATISTICS'],
-      ['Total Merchants Processed', total],
-      ['Successful', successful],
-      ['Failed', failed],
-      ['Success Rate', `${Math.round((successful / (total || 1)) * 100)}%`],
-      [],
-      ['ANGLE DISTRIBUTION'],
-      ['Angle', 'Count', 'Percentage'],
-      ...angleRows,
-    ];
-
-    const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
-    ws2['!cols'] = [{ wch: 35 }, { wch: 15 }, { wch: 15 }];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws1, 'Merchant Results');
-    XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
-
-    const filename = `Pi_Commerce_Report_${dateStr}.xlsx`;
-    XLSX.writeFile(wb, filename);
-    console.log(`[EXPORT] Excel ready → ${filename}`);
-  }
-
-  // ── Manual download handler (CHANGE 3) ────────────────────────────
-  async function handleExcelDownload() {
-    const btn = $('download-excel-btn');
-    if (btn) { btn.textContent = 'Preparing…'; btn.disabled = true; }
-    try {
-      await compileExcelAndDownload();
-      if (btn) { btn.textContent = '✓ Downloaded'; btn.style.background = '#aaa'; }
-    } catch (e) {
-      console.error('[EXPORT] Failed:', e);
-      if (btn) { btn.textContent = 'Download Excel Report ↓'; btn.disabled = false; }
-    }
-  }
-
-  // ── Main batch runner ────────────────────────────────────────────
-  async function startBatch() {
-    if (uploadedMerchants.length === 0) return;
-    batchSessionId     = Date.now();
-    batchIsPaused      = false;
-    batchIsStopped     = false;
-    batchSuccess       = 0;
-    batchFail          = 0;
-    batchTimings       = [];
-    completedMerchants = [];
-    filteredMerchants  = [];
-    currentPage        = 1;
-
-    $('batchStartRow').classList.add('hidden');
-    $('batchRunningRow').classList.remove('hidden');
-    $('batchCompleteBanner').style.display = 'none';
-    $('batchResultsArea').innerHTML = '';
-    $('current-result-label').style.display = 'none';
-    $('current-result-note').style.display = 'none';
-    $('completed-table-section').style.display = 'none';
-    $('completed-tbody').innerHTML = '';
-    const cf = $('filter-cohort');
-    if (cf) while (cf.options.length > 1) cf.remove(1);
-    updateStatsBar();
-
-    renderBatchTable(uploadedMerchants);
-
-    for (let i = 0; i < uploadedMerchants.length; i++) {
-      if (batchIsStopped) break;
-      while (batchIsPaused) await new Promise(r => setTimeout(r, 400));
-
-      updateBatchProgress(i, uploadedMerchants.length, batchSuccess, batchFail, batchTimings);
-      setBatchRowStatus(i, 'processing');
-
-      try {
-        await processBatchMerchant(uploadedMerchants[i], i);
-        setBatchRowStatus(i, 'done');
-      } catch (err) {
-        batchFail++;
-        console.error(`[BATCH ${uploadedMerchants[i].merchant_id}] Failed:`, err.message);
-        setBatchRowStatus(i, 'failed');
-        setBatchStep && setBatchStep(Math.min(5, BATCH_STEPS.length - 1), 'error', err.message);
-        addCompletedMerchant({
-          merchant_id:   uploadedMerchants[i].merchant_id,
-          name:          uploadedMerchants[i].name,
-          address:       '',
-          cohort:        null,
-          avg_rating:    null,
-          status:        'failed',
-          error_message: err.message,
-          whatsapp_message:  '',
-          push_notification: '',
-          banner_copy:       '',
-        });
-        try {
-          await apiPost('/api/batch/save-result', {
-            session_id:    String(batchSessionId),
-            merchant_id:   uploadedMerchants[i].merchant_id,
-            name:          uploadedMerchants[i].name,
-            status:        'failed',
-            error_message: err.message,
-          });
-        } catch {}
-      }
-
-      updateBatchProgress(i + 1, uploadedMerchants.length, batchSuccess, batchFail, batchTimings);
-      if (i < uploadedMerchants.length - 1 && !batchIsStopped) {
-        await new Promise(r => setTimeout(r, 1500));
-      }
-    }
-
-    // Done
-    $('batchRunningRow').classList.add('hidden');
-    $('batchStartRow').classList.remove('hidden');
-    $('batchStartBtn').textContent = 'Run Again →';
-    $('batchCurrentCard').classList.add('hidden');
-
-    const banner = $('batchCompleteBanner');
-    banner.style.display = 'block';
-    $('batch-complete-stats').textContent =
-      `${completedMerchants.length} merchants processed · ${batchSuccess} successful · ${batchFail} failed`;
-    banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  $('batchRunningRow').classList.add('hidden'); $('batchStartRow').classList.remove('hidden');
+  $('batchStartBtn').textContent='Run Again →'; $('batchCurrentCard').classList.add('hidden');
+  const banner=$('batchCompleteBanner'); banner.style.display='block';
+  $('batch-complete-stats').textContent=`${completedMerchants.length} merchants processed · ${batchSuccess} successful · ${batchFail} failed`;
+  banner.scrollIntoView({behavior:'smooth',block:'start'});
+}
 </script>
 </body>
 </html>

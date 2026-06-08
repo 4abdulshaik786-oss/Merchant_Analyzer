@@ -96,55 +96,157 @@ const VALID_CATEGORIES = [
   'Clinic & Doctor', 'Electronics & Technology', 'Other',
 ];
 
+// ─── Helper: normalize any Indian phone format to 0XXXXX XXXXX ────────────
+function normalizeIndianPhone(raw) {
+  if (!raw) return null;
+
+  // strip everything except digits
+  let digits = String(raw).replace(/[^\d]/g, '');
+
+  // remove country code 91 if present (12 digits starting with 91)
+  if (digits.startsWith('91') && digits.length === 12) {
+    digits = digits.slice(2);
+  }
+
+  // remove leading 0 if present — we'll add it back cleanly
+  if (digits.startsWith('0')) {
+    digits = digits.slice(1);
+  }
+
+  // must be 10 digits at this point
+  if (digits.length !== 10) {
+    console.warn(`[PHONE] Unexpected digit count (${digits.length}) for raw: ${raw} — using as-is`);
+    return String(raw).trim();
+  }
+
+  // format: 0XXXXX XXXXX — matches Google Maps India display format
+  return `0${digits.slice(0, 5)} ${digits.slice(5)}`;
+}
+
+// ─── Helper: convert any Indian phone to +91XXXXXXXXXX (for findplacefromtext) ─
+function toInternationalPhone(raw) {
+  if (!raw) return null;
+  let digits = String(raw).replace(/[^\d]/g, '');
+  if (digits.startsWith('91') && digits.length === 12) digits = digits.slice(2);
+  if (digits.startsWith('0')) digits = digits.slice(1);
+  if (digits.length !== 10) return null;
+  return `+91${digits}`;
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // GOOGLE PLACES PIPELINE
 // ════════════════════════════════════════════════════════════════════════════
 
-// ─── Google 1: find place via Text Search ────────────────────────────────────
+// ─── Google 1: find place via findplacefromtext (phone) + textsearch (name) ──
 app.post('/api/google/find-place', async (req, res) => {
-  const { businessName, address } = req.body || {};
-  if (!businessName) {
-    return res.status(400).json({ error: 'businessName is required' });
+  const { businessName, latitude, longitude } = req.body || {};
+  const intlPhone = toInternationalPhone(req.body.phone);
+
+  if (!intlPhone && !businessName) {
+    return res.status(400).json({ error: 'phone or businessName is required' });
   }
 
-  const query = `${businessName}${address ? ' ' + address : ''}`.trim();
-  const url =
-    `https://maps.googleapis.com/maps/api/place/textsearch/json` +
-    `?query=${encodeURIComponent(query)}` +
-    `&fields=place_id,name,formatted_address,rating,user_ratings_total` +
-    `&key=${GOOGLE_API_KEY}`;
+  const hasCoords = latitude != null && longitude != null;
 
-  console.log(`\n[GOOGLE] Text search: "${query}"`);
+  // Uses findplacefromtext with inputtype=phonenumber — the correct API for phone lookups.
+  // textsearch treats the query as freeform text and does NOT index phone numbers.
+  const searchByPhone = async (radius = 2000) => {
+    let url =
+      `https://maps.googleapis.com/maps/api/place/findplacefromtext/json` +
+      `?input=${encodeURIComponent(intlPhone)}` +
+      `&inputtype=phonenumber` +
+      `&fields=place_id,name,formatted_address,rating,user_ratings_total`;
+    if (hasCoords) url += `&locationbias=circle:${radius}@${latitude},${longitude}`;
+    url += `&key=${GOOGLE_API_KEY}`;
+    const r = await fetch(url);
+    return r.json();
+  };
+
+  const searchByName = async (query, radius = 500) => {
+    let url =
+      `https://maps.googleapis.com/maps/api/place/textsearch/json` +
+      `?query=${encodeURIComponent(query)}` +
+      `&key=${GOOGLE_API_KEY}`;
+    if (hasCoords) url += `&location=${latitude},${longitude}&radius=${radius}`;
+    const r = await fetch(url);
+    return r.json();
+  };
+
+  const normalize = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const isSimilar = (a, b) => {
+    if (!a || !b) return false;
+    return normalize(a).includes(normalize(b)) || normalize(b).includes(normalize(a));
+  };
+
+  // findplacefromtext returns { candidates: [...] }
+  const extractTopCandidate = (data) => {
+    if (!data.candidates || data.candidates.length === 0) return null;
+    const top = data.candidates[0];
+    return {
+      placeId:          top.place_id,
+      name:             top.name,
+      formattedAddress: top.formatted_address || '',
+      rating:           top.rating ?? null,
+      totalReviews:     top.user_ratings_total ?? 0,
+    };
+  };
+
+  // textsearch returns { results: [...] }
+  const extractTop = (data) => {
+    if (!data.results || data.results.length === 0) return null;
+    const top = data.results[0];
+    return {
+      placeId:          top.place_id,
+      name:             top.name,
+      formattedAddress: top.formatted_address,
+      rating:           top.rating ?? null,
+      totalReviews:     top.user_ratings_total ?? 0,
+    };
+  };
 
   try {
-    const r = await fetch(url);
-    const data = await r.json();
-    console.log(`[GOOGLE] Status: ${data.status} | Results: ${data.results?.length || 0}`);
-
-    if (data.status !== 'OK' || !data.results || data.results.length === 0) {
-      const msg =
-        data.status === 'ZERO_RESULTS'
-          ? 'No place found for that name and address'
-          : `Google Places error: ${data.status}${data.error_message ? ' — ' + data.error_message : ''}`;
-      return res.status(404).json({ error: msg });
+    // ── STEP 1: Phone via findplacefromtext (dedicated phone-number lookup) ──
+    if (intlPhone) {
+      console.log(`\n[MANUAL] Step 1: Phone lookup via findplacefromtext → ${intlPhone}${hasCoords ? ` @ ${latitude},${longitude}` : ''}`);
+      const data = await searchByPhone(2000);
+      console.log(`[MANUAL] findplacefromtext status=${data.status} candidates=${data.candidates?.length || 0}`);
+      const result = extractTopCandidate(data);
+      if (result) {
+        console.log(`[MANUAL] Phone match: ${result.name}`);
+        return res.json({ ...result, matchedBy: 'phone' });
+      }
+      console.log(`[MANUAL] Phone lookup returned no candidates`);
     }
 
-    const top = data.results[0];
-    const place = {
-      placeId: top.place_id,
-      name: top.name,
-      formattedAddress: top.formatted_address,
-      rating: top.rating ?? null,
-      totalReviews: top.user_ratings_total ?? 0,
-    };
-    console.log(`[GOOGLE] Top match: ${place.name} (${place.placeId}) — ★${place.rating} · ${place.totalReviews} reviews`);
-    res.json(place);
+    // ── STEP 2: Name fallback via textsearch ──────────────────────────────
+    if (businessName) {
+      console.log(`\n[MANUAL] Step 2: Name search → "${businessName}"${hasCoords ? ` @ ${latitude},${longitude}` : ''}`);
+      let data = await searchByName(businessName, 500);
+      if (!data.results || data.results.length === 0) {
+        console.log(`[MANUAL] Name radius=500 empty, retrying 2000`);
+        data = await searchByName(businessName, 2000);
+      }
+      const result = extractTop(data);
+      if (result) {
+        const confident = isSimilar(businessName, result.name);
+        console.log(`[MANUAL] Name match: ${result.name} | similar=${confident}`);
+        return res.json({ ...result, matchedBy: 'name', lowConfidence: !confident });
+      }
+      console.log(`[MANUAL] Name search returned no results`);
+    }
+
+    // ── STEP 3: Both failed ───────────────────────────────────────────────
+    console.warn(`[MANUAL] All search attempts failed`);
+    return res.status(404).json({ 
+      error: 'No place found — phone lookup and name search both returned no results',
+      matchedBy: null
+    });
+
   } catch (e) {
-    console.error('[GOOGLE] Exception:', e.message);
+    console.error('[MANUAL] Exception:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
-
 // ─── Google 2: fetch reviews via Place Details ───────────────────────────────
 app.post('/api/google/reviews', async (req, res) => {
   const { placeId, sortOrder, placeMetadata } = req.body || {};
@@ -698,6 +800,8 @@ app.post('/api/generate-copy', async (req, res) => {
 
 const { parse } = require('csv-parse/sync');
 
+
+
 // ── Column-name aliases → canonical field name ────────────────────────────
 function normalizeColumns(record) {
   const find = (...keys) => {
@@ -710,6 +814,7 @@ function normalizeColumns(record) {
   return {
     merchant_id: find('merchant_id', 'merchantid', 'merchant id', 'id'),
     name:        find('name', 'business_name', 'businessname', 'business name'),
+    phone:       find('phone', 'mobile', 'phone_number', 'contact', 'mobile_number'), // ← NEW
     latitude:    find('latitude', 'lat'),
     longitude:   find('longitude', 'lng', 'lon', 'long'),
   };
@@ -730,9 +835,9 @@ app.get('/api/batch/preview', (req, res) => {
     // Validate required columns exist on at least the first row
     if (records.length > 0) {
       const norm = normalizeColumns(records[0]);
-      const missing = Object.entries(norm)
-        .filter(([, v]) => v === undefined)
-        .map(([k]) => k);
+     const REQUIRED_CSV_COLS = ['merchant_id', 'phone', 'latitude', 'longitude'];
+const missing = REQUIRED_CSV_COLS
+  .filter(col => norm[col] === undefined);
       if (missing.length) {
         return res.status(400).json({
           error: `Missing required column: ${missing.join(', ')} in MerchantData.csv`,
@@ -742,7 +847,7 @@ app.get('/api/batch/preview', (req, res) => {
 
     const merchants = records
       .map(normalizeColumns)
-      .filter(m => m.merchant_id !== undefined && m.name !== undefined);
+      .filter(m => m.merchant_id !== undefined && m.phone !== undefined);
 
     console.log(`[BATCH] Loaded ${merchants.length} merchants from MerchantData.csv`);
     res.json({ merchants, total: merchants.length });
@@ -753,51 +858,122 @@ app.get('/api/batch/preview', (req, res) => {
 });
 
 // POST /api/batch/find-place-by-coordinates
-// Finds a place using name + lat/lng location bias.
+// Finds a place using phone (findplacefromtext) then name (textsearch) as fallback.
 app.post('/api/batch/find-place-by-coordinates', async (req, res) => {
   const { name, latitude, longitude, merchant_id } = req.body || {};
-  if (!name || latitude == null || longitude == null) {
-    return res.status(400).json({ error: 'name, latitude, longitude are required' });
+
+  // Fix: use normalizeIndianPhone (not normalizeColumns) to parse the phone string
+  const intlPhone = toInternationalPhone(req.body.phone);
+
+  if (!intlPhone || latitude == null || longitude == null) {
+    return res.status(400).json({ 
+      error: 'phone (valid 10-digit Indian number), latitude, and longitude are required' 
+    });
   }
 
-  const tryRadius = async (radius) => {
+  const location = `${latitude},${longitude}`;
+
+  // findplacefromtext with inputtype=phonenumber — correct API for phone lookups
+  const searchByPhone = async (radius = 2000) => {
+    const url =
+      `https://maps.googleapis.com/maps/api/place/findplacefromtext/json` +
+      `?input=${encodeURIComponent(intlPhone)}` +
+      `&inputtype=phonenumber` +
+      `&fields=place_id,name,formatted_address,rating,user_ratings_total` +
+      `&locationbias=circle:${radius}@${location}` +
+      `&key=${GOOGLE_API_KEY}`;
+    const r = await fetch(url);
+    return r.json();
+  };
+
+  const searchByName = async (query, radius) => {
     const url =
       `https://maps.googleapis.com/maps/api/place/textsearch/json` +
-      `?query=${encodeURIComponent(name)}` +
-      `&location=${latitude},${longitude}` +
+      `?query=${encodeURIComponent(query)}` +
+      `&location=${location}` +
       `&radius=${radius}` +
       `&key=${GOOGLE_API_KEY}`;
     const r = await fetch(url);
     return r.json();
   };
 
-  try {
-    let data = await tryRadius(500);
-    if ((!data.results || data.results.length === 0) && data.status !== 'INVALID_REQUEST') {
-      console.log(`[BATCH ${merchant_id}] radius=500 returned 0, retrying radius=2000`);
-      data = await tryRadius(2000);
-    }
+  const normalize = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const isSimilar = (a, b) => {
+    if (!a || !b) return false;
+    return normalize(a).includes(normalize(b)) || normalize(b).includes(normalize(a));
+  };
 
-    if (!data.results || data.results.length === 0) {
-      return res.status(404).json({ error: 'Place not found near coordinates' });
-    }
-
-    const top = data.results[0];
-    const result = {
+  // findplacefromtext returns { candidates: [...] }
+  const extractTopCandidate = (data) => {
+    if (!data.candidates || data.candidates.length === 0) return null;
+    const top = data.candidates[0];
+    return {
       placeId:          top.place_id,
       name:             top.name,
       formattedAddress: top.formatted_address || '',
       rating:           top.rating ?? null,
       totalReviews:     top.user_ratings_total ?? 0,
     };
-    console.log(`[BATCH ${merchant_id}] Found place: ${result.name}`);
-    res.json(result);
+  };
+
+  // textsearch returns { results: [...] }
+  const extractTop = (data) => {
+    if (!data.results || data.results.length === 0) return null;
+    const top = data.results[0];
+    return {
+      placeId:          top.place_id,
+      name:             top.name,
+      formattedAddress: top.formatted_address || '',
+      rating:           top.rating ?? null,
+      totalReviews:     top.user_ratings_total ?? 0,
+    };
+  };
+
+  try {
+    // ── STEP 1: Phone via findplacefromtext (dedicated phone-number lookup) ─
+    console.log(`\n[BATCH ${merchant_id}] Step 1: Phone lookup via findplacefromtext → ${intlPhone}`);
+    const phoneData = await searchByPhone(2000);
+    console.log(`[BATCH ${merchant_id}] findplacefromtext status=${phoneData.status} candidates=${phoneData.candidates?.length || 0}`);
+    const phoneResult = extractTopCandidate(phoneData);
+    if (phoneResult) {
+      console.log(`[BATCH ${merchant_id}] Phone match: ${phoneResult.name} | matchedBy=phone`);
+      return res.json({ ...phoneResult, matchedBy: 'phone' });
+    }
+    console.log(`[BATCH ${merchant_id}] Phone lookup returned no candidates`);
+
+    // ── STEP 2: Name + coordinates fallback (only if name provided) ────────
+    if (name) {
+      console.log(`[BATCH ${merchant_id}] Step 2: Name search → ${name}`);
+      let data = await searchByName(name, 500);
+      if (!data.results || data.results.length === 0) {
+        console.log(`[BATCH ${merchant_id}] Name radius=500 empty, retrying 2000`);
+        data = await searchByName(name, 2000);
+      }
+
+      const result = extractTop(data);
+      if (result) {
+        const confident = isSimilar(name, result.name);
+        console.log(`[BATCH ${merchant_id}] Name match: ${result.name} | similar=${confident}`);
+        return res.json({ 
+          ...result, 
+          matchedBy: 'name',
+          lowConfidence: !confident
+        });
+      }
+    }
+
+    // ── STEP 3: Both failed ───────────────────────────────────────────────
+    console.warn(`[BATCH ${merchant_id}] Phone lookup and name search both failed`);
+    return res.status(404).json({ 
+      error: 'Place not found — phone lookup and name search both returned no results',
+      matchedBy: null
+    });
+
   } catch (e) {
     console.error(`[BATCH ${merchant_id}] find-place error:`, e.message);
     res.status(500).json({ error: e.message });
   }
 });
-
 // ── Helper: split push notification into title + body ─────────────────────
 // Tries "? " boundary first (most hooks end with "?"), then ". ".
 function splitPush(str) {
