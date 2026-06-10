@@ -54,7 +54,10 @@ _http_client: Optional[httpx.Client] = None
 def _pool() -> psycopg2.pool.ThreadedConnectionPool:
     global _db_pool
     if _db_pool is None:
-        _db_pool = psycopg2.pool.ThreadedConnectionPool(1, 20, DATABASE_URL)
+        # sslmode='require' = use SSL but skip certificate verification.
+        # Equivalent to ssl: { rejectUnauthorized: false } in Node.js pg.
+        # Required to bypass Zscaler/firewall SSL inspection on corporate networks.
+        _db_pool = psycopg2.pool.ThreadedConnectionPool(1, 20, DATABASE_URL, sslmode='require')
     return _db_pool
 
 
