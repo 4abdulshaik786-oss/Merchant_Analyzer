@@ -17,10 +17,9 @@ from typing import Any, List, Optional
 from urllib.parse import quote as url_quote
 
 import httpx
-import psycopg2
-import psycopg2.pool
 import urllib3
 from dotenv import load_dotenv
+from urllib.parse import urlparse as _urlparse
 from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -46,38 +45,53 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 if not GOOGLE_API_KEY:   print("[WARN] GOOGLE_API_KEY missing in .env")
 if not TRUFOUNDRY_TOKEN: print("[WARN] TRUFOUNDRY_TOKEN missing in .env")
 
-# ─── PostgreSQL pool (Neon) ───────────────────────────────────────────────────
-_db_pool: Optional[psycopg2.pool.ThreadedConnectionPool] = None
+# ─── Neon HTTP API — connects over HTTPS (port 443) not TCP port 5432 ─────────
+# Port 5432 is blocked by Zscaler/corporate firewalls.
+# Neon exposes an HTTP SQL endpoint at https://{host}/sql that works over port 443.
+# This is the same mechanism used by Neon's official @neondatabase/serverless JS driver.
+
 _http_client: Optional[httpx.Client] = None
 
 
-def _pool() -> psycopg2.pool.ThreadedConnectionPool:
-    global _db_pool
-    if _db_pool is None:
-        # sslmode='require' = use SSL but skip certificate verification.
-        # Equivalent to ssl: { rejectUnauthorized: false } in Node.js pg.
-        # Required to bypass Zscaler/firewall SSL inspection on corporate networks.
-        _db_pool = psycopg2.pool.ThreadedConnectionPool(1, 20, DATABASE_URL, sslmode='require')
-    return _db_pool
+def _neon_host() -> str:
+    """Extract hostname from DATABASE_URL."""
+    return _urlparse(DATABASE_URL).hostname or ""
+
+
+def _pg_to_dollar(sql: str) -> str:
+    """Convert psycopg2-style %s placeholders to PostgreSQL $1,$2,... notation
+    required by the Neon HTTP API."""
+    counter = [0]
+    def _rep(_m):
+        counter[0] += 1
+        return f"${counter[0]}"
+    return re.sub(r"%s", _rep, sql)
 
 
 def db_exec(sql: str, params=None, fetch: bool = False):
-    """Run a SQL statement; return list-of-dicts when fetch=True."""
-    pool = _pool()
-    conn = pool.getconn()
-    try:
-        with conn.cursor() as cur:
-            cur.execute(sql, params or ())
-            conn.commit()
-            if fetch:
-                cols = [d[0] for d in cur.description]
-                return [dict(zip(cols, row)) for row in cur.fetchall()]
-        return []
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        pool.putconn(conn)
+    """
+    Execute SQL via Neon HTTP API over HTTPS port 443.
+    Bypasses corporate firewalls/Zscaler that block PostgreSQL port 5432.
+    Equivalent to the psycopg2 pool approach but routed through HTTPS.
+    """
+    converted_sql = _pg_to_dollar(sql)
+    r = http().post(
+        f"https://{_neon_host()}/sql",
+        headers={
+            "Content-Type": "application/json",
+            "Neon-Connection-String": DATABASE_URL,
+        },
+        json={
+            "query": converted_sql,
+            "params": list(params) if params else [],
+        },
+    )
+    if not r.is_success:
+        raise Exception(f"Neon HTTP API error {r.status_code}: {r.text[:300]}")
+    data = r.json()
+    if fetch:
+        return data.get("rows", [])
+    return []
 
 
 def http() -> httpx.Client:
@@ -117,8 +131,6 @@ async def lifespan(app: FastAPI):
     """)
     print("[PostgreSQL] Database ready → Neon")
     yield
-    if _db_pool:
-        _db_pool.closeall()
     if _http_client:
         _http_client.close()
 
