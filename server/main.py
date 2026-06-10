@@ -105,7 +105,6 @@ def http() -> httpx.Client:
 # ─── FastAPI lifespan ─────────────────────────────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    _pool()
     db_exec("""
         CREATE TABLE IF NOT EXISTS merchants (
             merchant_id       TEXT PRIMARY KEY,
