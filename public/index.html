@@ -89,8 +89,7 @@
   .mode-toggle button { padding: 8px 20px; font-size: 13px; font-weight: 600; border: none; border-radius: 20px; cursor: pointer; font-family: inherit; transition: background 0.15s, color 0.15s; }
   .mode-toggle button.active { background: #1a1a1a; color: #fff; }
   .mode-toggle button:not(.active) { background: #f0f0f0; color: #444; }
-  #upload-area { border: 2px dashed #CCCCCC; border-radius: 10px; background: #FAFAF9; min-height: 130px; display: flex; align-items: center; justify-content: center; text-align: center; cursor: pointer; margin-bottom: 16px; padding: 20px; transition: all 0.2s ease; }
-  #upload-area:hover, #upload-area.drag-over { border-color: #003580; background: #F0F4FF; }
+  #upload-area { border: 2px dashed #CCCCCC; border-radius: 10px; background: #FAFAF9; min-height: 130px; display: flex; align-items: center; justify-content: center; text-align: center; margin-bottom: 16px; padding: 20px; transition: all 0.2s ease; }
   #upload-area.file-loaded { border: 2px solid #22C55E; background: #F0FDF4; }
   .batch-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .batch-table th { background: #f5f5f3; font-weight: 600; text-align: left; padding: 8px 12px; border-bottom: 2px solid #e8e8e6; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #555; }
@@ -247,25 +246,30 @@
   <!-- BATCH MODE -->
   <div id="batchSection" class="hidden">
 
-    <div id="upload-area"
-         onclick="document.getElementById('csv-file-input').click()"
-         ondragover="event.preventDefault();this.classList.add('drag-over')"
-         ondragleave="this.classList.remove('drag-over')"
-         ondrop="handleFileDrop(event)">
+    <div id="upload-area">
       <div id="upload-placeholder">
         <div style="font-size:32px">📁</div>
-        <div style="font-weight:600;margin-top:8px">Drop your CSV or Excel file here</div>
-        <div style="color:#888;font-size:13px;margin-top:4px">or click to browse</div>
-        <div style="color:#aaa;font-size:12px;margin-top:8px">Required: merchant_id &nbsp;·&nbsp; Optional: phone, name, latitude, longitude</div>
+        <div style="font-weight:600;margin-top:8px">Enter the full path to your CSV or Excel file</div>
+        <div style="color:#888;font-size:13px;margin-top:4px">The server reads the file directly from disk — no data passes through the browser</div>
+        <div style="display:flex;gap:8px;margin-top:16px;width:100%;max-width:640px;">
+          <input type="text" id="file-path-input"
+                 placeholder="e.g.  D:\Downloads\merchants.csv"
+                 style="flex:1;padding:10px 14px;border:1px solid #d0d0cc;border-radius:8px;font-size:13px;font-family:monospace;background:#fff;outline:none;min-width:0;"
+                 onkeydown="if(event.key==='Enter')loadFileFromPath()" />
+          <button onclick="loadFileFromPath()" id="load-file-btn"
+                  style="padding:10px 22px;background:#003580;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;">
+            Load →
+          </button>
+        </div>
+        <div style="color:#aaa;font-size:12px;margin-top:10px">Required column: merchant_id &nbsp;·&nbsp; Optional: phone, name, latitude, longitude</div>
       </div>
       <div id="upload-success" style="display:none">
         <div style="color:#16A34A;font-size:24px">✓</div>
         <div id="upload-filename" style="font-weight:600"></div>
         <div id="upload-rowcount" style="color:#666;font-size:13px"></div>
-        <span id="upload-remove" onclick="event.stopPropagation();removeUploadedFile()" style="color:#999;font-size:12px;cursor:pointer;text-decoration:underline;margin-top:4px;display:block">× Remove and re-upload</span>
+        <span id="upload-remove" onclick="removeUploadedFile()" style="color:#999;font-size:12px;cursor:pointer;text-decoration:underline;margin-top:4px;display:block">× Clear and load a different file</span>
       </div>
     </div>
-    <input type="file" id="csv-file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileSelect(event)" />
 
     <div id="preview-table-section" style="display:none;margin-bottom:16px;">
       <table style="width:100%;border-collapse:collapse;border:1px solid #e8e8e6;border-radius:8px;overflow:hidden;font-family:inherit;">
@@ -649,60 +653,41 @@ let batchSuccess=0, batchFail=0, batchTimings=[], currentPage=1;
 const PAGE_SIZE = 20;
 let searchDebounceTimer = null;
 
-function handleFileDrop(event) { event.preventDefault(); $('upload-area').classList.remove('drag-over'); const f=event.dataTransfer.files[0]; if(f) processUploadedFile(f); }
-function handleFileSelect(event) { const f=event.target.files[0]; if(f) processUploadedFile(f); }
 function removeUploadedFile() {
   uploadedMerchants = []; $('upload-area').classList.remove('file-loaded');
   $('upload-placeholder').style.display='block'; $('upload-success').style.display='none';
-  $('csv-file-input').value=''; $('preview-table-section').style.display='none';
+  const pi=$('file-path-input'); if(pi) pi.value='';
+  $('preview-table-section').style.display='none';
   updateStartButton();
 }
 
-async function processUploadedFile(file) {
-  const ext = file.name.split('.').pop().toLowerCase();
-  let rows = [];
+async function loadFileFromPath() {
+  const pathInput = $('file-path-input');
+  const filePath = pathInput ? pathInput.value.trim() : '';
+  if (!filePath) { alert('Please enter a file path first.'); return; }
+
+  const btn = $('load-file-btn');
+  if (btn) { btn.disabled=true; btn.textContent='Loading…'; }
+
   try {
-    if (ext==='csv') { rows = parseCSV(await file.text()); }
-    else if (ext==='xlsx'||ext==='xls') {
-      const wb = XLSX.read(await file.arrayBuffer(), {type:'array'});
-      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:''});
-    } else { showBatchUploadError('Unsupported file type. Please upload .csv, .xlsx, or .xls'); return; }
+    const result = await apiPost('/api/batch/load-file', { path: filePath });
+    if (result.error) { alert('Error: ' + result.error); return; }
 
-    const normalized = rows.map(row => {
-      const n = {};
-      Object.keys(row).forEach(k => {
-        const lower = k.toLowerCase().replace(/[_\s]/g,'');
-        if (['merchantid','merchant_id','id'].includes(lower))                                                         n.merchant_id = row[k];
-        else if (['name','businessname','business_name'].includes(lower))                                              n.name        = row[k];
-        else if (['phone','mobile','phonenumber','phone_number','contact','mobilenumber','mobile_number'].includes(lower)) n.phone    = row[k];
-        else if (['latitude','lat'].includes(lower))                                                                   n.latitude    = row[k];
-        else if (['longitude','lng','lon','long'].includes(lower))                                                     n.longitude   = row[k];
-      });
-      return n;
-    }).filter(r => r.merchant_id);
-
+    const normalized = result.merchants || [];
     if (normalized.length === 0) {
-      showBatchUploadError('Missing required column: merchant_id.\n\nOptional columns: phone, name, latitude, longitude. Please check your file.');
+      alert('No valid merchants found. Make sure the file has a merchant_id column.');
       return;
     }
 
     uploadedMerchants = normalized;
     $('upload-area').classList.add('file-loaded');
     $('upload-placeholder').style.display='none'; $('upload-success').style.display='block';
-    $('upload-filename').textContent = file.name;
+    $('upload-filename').textContent = result.filename || filePath.split(/[\\\/]/).pop();
     $('upload-rowcount').textContent = `${normalized.length} merchants found`;
     renderUploadPreview(normalized);
     updateStartButton();
-  } catch(err) { showBatchUploadError('Failed to parse file: '+err.message); }
-}
-
-function parseCSV(text) {
-  const lines = text.trim().split('\n');
-  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
-  return lines.slice(1).filter(l=>l.trim()).map(line => {
-    const values = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
-    const obj={}; headers.forEach((h,i)=>obj[h]=values[i]||''); return obj;
-  });
+  } catch(err) { alert('Failed to load file: ' + err.message); }
+  finally { if (btn) { btn.disabled=false; btn.textContent='Load →'; } }
 }
 
 function renderUploadPreview(merchants) {

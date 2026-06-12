@@ -689,6 +689,9 @@ class FindPlaceByCoordinatesBody(BaseModel):
     merchant_id: Optional[str] = None
 
 
+class LoadFileBody(BaseModel):
+    path: str
+
 class SaveResultBody(BaseModel):
     session_id: Optional[str] = None
     merchant_id: Optional[str] = None
@@ -1010,6 +1013,55 @@ def api_batch_preview():
     except Exception as e:
         print(f"[BATCH] CSV parse error: {e}")
         return JSONResponse(status_code=500, content={"error": f"CSV parse error: {e}"})
+
+
+# ── POST /api/batch/load-file ─────────────────────────────────────────────────
+@app.post("/api/batch/load-file")
+def api_batch_load_file(body: LoadFileBody):
+    file_path = body.path.strip()
+    if not os.path.exists(file_path):
+        return JSONResponse(status_code=404, content={"error": f"File not found: {file_path}"})
+
+    ext      = os.path.splitext(file_path)[1].lower()
+    filename = os.path.basename(file_path)
+
+    try:
+        records: list = []
+        if ext == ".csv":
+            with open(file_path, newline="", encoding="utf-8-sig") as f:
+                records = list(csv.DictReader(f))
+        elif ext in (".xlsx", ".xls"):
+            import openpyxl
+            wb = openpyxl.load_workbook(file_path, read_only=True, data_only=True)
+            ws = wb.active
+            all_rows = list(ws.iter_rows(values_only=True))
+            wb.close()
+            if not all_rows:
+                return JSONResponse(status_code=400, content={"error": "Empty Excel file"})
+            headers = [str(h).strip() if h is not None else "" for h in all_rows[0]]
+            records = [
+                dict(zip(headers, [str(v) if v is not None else "" for v in row]))
+                for row in all_rows[1:]
+                if any(v is not None for v in row)
+            ]
+        else:
+            return JSONResponse(status_code=400, content={"error": "Unsupported file type. Use .csv, .xlsx, or .xls"})
+
+        if records:
+            norm0 = normalize_columns(records[0])
+            if norm0.get("merchant_id") is None:
+                return JSONResponse(status_code=400, content={"error": "Missing required column: merchant_id"})
+
+        merchants = [
+            n for n in (normalize_columns(rec) for rec in records)
+            if n.get("merchant_id") is not None
+        ]
+        print(f"[BATCH] Loaded {len(merchants)} merchants from {filename}")
+        return {"merchants": merchants, "total": len(merchants), "filename": filename}
+
+    except Exception as e:
+        print(f"[BATCH] File load error: {e}")
+        return JSONResponse(status_code=500, content={"error": f"File load error: {str(e)}"})
 
 
 # ── POST /api/batch/find-place-by-coordinates ─────────────────────────────────
