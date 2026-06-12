@@ -993,18 +993,17 @@ def api_batch_preview():
         with open(csv_path, newline="", encoding="utf-8") as f:
             records = list(csv.DictReader(f))
 
-        REQUIRED_CSV_COLS = ["merchant_id", "phone", "latitude", "longitude"]
+        # Only merchant_id is required — phone, name, lat, long are all optional
         if records:
-            norm    = normalize_columns(records[0])
-            missing = [c for c in REQUIRED_CSV_COLS if norm.get(c) is None]
-            if missing:
+            norm = normalize_columns(records[0])
+            if norm.get("merchant_id") is None:
                 return JSONResponse(status_code=400, content={
-                    "error": f"Missing required column: {', '.join(missing)} in MerchantData.csv"
+                    "error": "Missing required column: merchant_id in CSV"
                 })
 
         merchants = [
             n for n in (normalize_columns(rec) for rec in records)
-            if n.get("merchant_id") is not None and n.get("phone") is not None
+            if n.get("merchant_id") is not None
         ]
         print(f"[BATCH] Loaded {len(merchants)} merchants from MerchantData.csv")
         return {"merchants": merchants, "total": len(merchants)}
@@ -1022,12 +1021,14 @@ def api_batch_find_place(body: FindPlaceByCoordinatesBody):
     longitude   = body.longitude
     merchant_id = body.merchant_id
 
-    if not intl_phone or latitude is None or longitude is None:
+    # Need at least phone or name to search
+    if not intl_phone and not name:
         return JSONResponse(status_code=400, content={
-            "error": "phone (valid 10-digit Indian number), latitude, and longitude are required"
+            "error": "At least phone or name is required to find a place"
         })
 
-    location = f"{latitude},{longitude}"
+    has_coords = latitude is not None and longitude is not None
+    location   = f"{latitude},{longitude}" if has_coords else None
 
     def search_by_phone(radius: int = 2000):
         url = (
@@ -1035,8 +1036,8 @@ def api_batch_find_place(body: FindPlaceByCoordinatesBody):
             f"?input={url_quote(intl_phone, safe='')}"
             f"&inputtype=phonenumber"
             f"&fields=place_id,name,formatted_address,rating,user_ratings_total"
-            f"&locationbias=circle:{radius}@{location}"
-            f"&key={GOOGLE_API_KEY}"
+            + (f"&locationbias=circle:{radius}@{location}" if has_coords else "")
+            + f"&key={GOOGLE_API_KEY}"
         )
         return http().get(url).json()
 
@@ -1044,9 +1045,8 @@ def api_batch_find_place(body: FindPlaceByCoordinatesBody):
         url = (
             "https://maps.googleapis.com/maps/api/place/textsearch/json"
             f"?query={url_quote(query, safe='')}"
-            f"&location={location}"
-            f"&radius={radius}"
-            f"&key={GOOGLE_API_KEY}"
+            + (f"&location={location}&radius={radius}" if has_coords else "")
+            + f"&key={GOOGLE_API_KEY}"
         )
         return http().get(url).json()
 
@@ -1086,20 +1086,23 @@ def api_batch_find_place(body: FindPlaceByCoordinatesBody):
         }
 
     try:
-        # ── STEP 1: Phone via findplacefromtext ────────────────────────────
-        print(f"\n[BATCH {merchant_id}] Step 1: Phone lookup via findplacefromtext → {intl_phone}")
-        phone_data   = search_by_phone(2000)
-        cand_count   = len(phone_data.get("candidates") or [])
-        print(f"[BATCH {merchant_id}] findplacefromtext status={phone_data.get('status')} candidates={cand_count}")
-        phone_result = extract_top_candidate(phone_data)
-        if phone_result:
-            print(f"[BATCH {merchant_id}] Phone match: {phone_result['name']} | matchedBy=phone")
-            return {**phone_result, "matchedBy": "phone"}
-        print(f"[BATCH {merchant_id}] Phone lookup returned no candidates")
+        # ── STEP 1: Phone via findplacefromtext (only if phone provided) ───
+        if intl_phone:
+            coord_str = f" @ {location}" if has_coords else ""
+            print(f"\n[BATCH {merchant_id}] Step 1: Phone lookup via findplacefromtext → {intl_phone}{coord_str}")
+            phone_data   = search_by_phone(2000)
+            cand_count   = len(phone_data.get("candidates") or [])
+            print(f"[BATCH {merchant_id}] findplacefromtext status={phone_data.get('status')} candidates={cand_count}")
+            phone_result = extract_top_candidate(phone_data)
+            if phone_result:
+                print(f"[BATCH {merchant_id}] Phone match: {phone_result['name']} | matchedBy=phone")
+                return {**phone_result, "matchedBy": "phone"}
+            print(f"[BATCH {merchant_id}] Phone lookup returned no candidates")
 
-        # ── STEP 2: Name + coordinates fallback ────────────────────────────
+        # ── STEP 2: Name fallback via textsearch (only if name provided) ──
         if name:
-            print(f"[BATCH {merchant_id}] Step 2: Name search → {name}")
+            coord_str = f" @ {location}" if has_coords else ""
+            print(f"[BATCH {merchant_id}] Step 2: Name search → {name}{coord_str}")
             data = search_by_name(name, 500)
             if not data.get("results"):
                 print(f"[BATCH {merchant_id}] Name radius=500 empty, retrying 2000")

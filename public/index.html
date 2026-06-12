@@ -256,7 +256,7 @@
         <div style="font-size:32px">📁</div>
         <div style="font-weight:600;margin-top:8px">Drop your CSV or Excel file here</div>
         <div style="color:#888;font-size:13px;margin-top:4px">or click to browse</div>
-        <div style="color:#aaa;font-size:12px;margin-top:8px">Required: merchant_id, phone, latitude, longitude &nbsp;·&nbsp; Optional: name</div>
+        <div style="color:#aaa;font-size:12px;margin-top:8px">Required: merchant_id &nbsp;·&nbsp; Optional: phone, name, latitude, longitude</div>
       </div>
       <div id="upload-success" style="display:none">
         <div style="color:#16A34A;font-size:24px">✓</div>
@@ -679,10 +679,10 @@ async function processUploadedFile(file) {
         else if (['longitude','lng','lon','long'].includes(lower))                                                     n.longitude   = row[k];
       });
       return n;
-    }).filter(r => r.merchant_id && r.phone);
+    }).filter(r => r.merchant_id);
 
     if (normalized.length === 0) {
-      showBatchUploadError('Missing required columns: merchant_id, phone, latitude, longitude.\n\nNote: "name" is optional. Please check your file.');
+      showBatchUploadError('Missing required column: merchant_id.\n\nOptional columns: phone, name, latitude, longitude. Please check your file.');
       return;
     }
 
